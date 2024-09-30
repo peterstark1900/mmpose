@@ -1,14 +1,29 @@
 _base_ = ['../_base_/default_runtime.py']
 
 # runtime
-# train_cfg = dict(max_epochs=300, val_interval=10)
-train_cfg = dict(max_epochs=50, val_interval=10)
+train_cfg = dict(max_epochs=210, val_interval=10)
 
 # optimizer
-optim_wrapper = dict(optimizer=dict(
-    type='AdamW',
-    lr=5e-4,
-))
+custom_imports = dict(
+    imports=['mmpose.engine.optim_wrappers.layer_decay_optim_wrapper'],
+    allow_failed_imports=False)
+
+optim_wrapper = dict(
+    optimizer=dict(
+        type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1),
+    paramwise_cfg=dict(
+        num_layers=12,
+        layer_decay_rate=0.8,
+        custom_keys={
+            'bias': dict(decay_multi=0.0),
+            'pos_embed': dict(decay_mult=0.0),
+            'relative_position_bias_table': dict(decay_mult=0.0),
+            'norm': dict(decay_mult=0.0),
+        },
+    ),
+    constructor='LayerDecayOptimWrapperConstructor',
+    clip_grad=dict(max_norm=1., norm_type=2),
+)
 
 # learning policy
 param_scheduler = [
@@ -28,11 +43,12 @@ param_scheduler = [
 auto_scale_lr = dict(base_batch_size=512)
 
 # hooks
-default_hooks = dict(checkpoint=dict(save_best='PCK', rule='greater'))
+default_hooks = dict(
+    checkpoint=dict(save_best='coco/AP', rule='greater', max_keep_ckpts=1))
 
 # codec settings
 codec = dict(
-    type='MSRAHeatmap', input_size=(256, 256), heatmap_size=(64, 64), sigma=2)
+    type='UDPHeatmap', input_size=(192, 256), heatmap_size=(48, 64), sigma=2)
 
 # model settings
 model = dict(
@@ -43,93 +59,85 @@ model = dict(
         std=[58.395, 57.12, 57.375],
         bgr_to_rgb=True),
     backbone=dict(
-        type='HRNet',
-        in_channels=3,
-        extra=dict(
-            stage1=dict(
-                num_modules=1,
-                num_branches=1,
-                block='BOTTLENECK',
-                num_blocks=(4, ),
-                num_channels=(64, )),
-            stage2=dict(
-                num_modules=1,
-                num_branches=2,
-                block='BASIC',
-                num_blocks=(4, 4),
-                num_channels=(32, 64)),
-            stage3=dict(
-                num_modules=4,
-                num_branches=3,
-                block='BASIC',
-                num_blocks=(4, 4, 4),
-                num_channels=(32, 64, 128)),
-            stage4=dict(
-                num_modules=3,
-                num_branches=4,
-                block='BASIC',
-                num_blocks=(4, 4, 4, 4),
-                num_channels=(32, 64, 128, 256))),
+        type='mmpretrain.VisionTransformer',
+        arch={
+            'embed_dims': 384,
+            'num_layers': 12,
+            'num_heads': 12,
+            'feedforward_channels': 384 * 4
+        },
+        img_size=(256, 192),
+        patch_size=16,
+        qkv_bias=True,
+        drop_path_rate=0.1,
+        with_cls_token=False,
+        out_type='featmap',
+        patch_cfg=dict(padding=2),
         init_cfg=dict(
             type='Pretrained',
             checkpoint='https://download.openmmlab.com/mmpose/'
-            'pretrain_models/hrnet_w32-36af842e.pth'),
+            'v1/pretrained_models/mae_pretrain_vit_small.pth'),
     ),
     head=dict(
         type='HeatmapHead',
-        in_channels=32,
-        out_channels=2,
-        deconv_out_channels=None,
+        in_channels=384,
+        out_channels=17,
+        deconv_out_channels=(256, 256),
+        deconv_kernel_sizes=(4, 4),
         loss=dict(type='KeypointMSELoss', use_target_weight=True),
         decoder=codec),
     test_cfg=dict(
         flip_test=True,
         flip_mode='heatmap',
-        shift_heatmap=True,
-    ),
-)
+        shift_heatmap=False,
+    ))
 
 
-
-dataset_type = 'Fish0924Dataset' # 数据集类名
+# base dataset settings
+# dataset_type = 'ZebraDataset'
+dataset_type = 'Fish0929Dataset' # 数据集类名
 data_mode = 'topdown'
-data_root = 'data/Fish-Tracker-0924/'
+# data_root = 'data/zebra/'
+data_root = 'data/Fish-Tracker-0929/'
 
 # pipelines
 train_pipeline = [
     dict(type='LoadImage'),
-    dict(type='GetBBoxCenterScale'),
-    # dict(type='RandomFlip', direction='horizontal'),
-    # dict(type='RandomHalfBody'),
-    # dict(type='RandomBBoxTransform'),
+    dict(type='GetBBoxCenterScale', padding=0.8),
+    dict(type='RandomFlip', direction='horizontal'),
+    dict(
+        type='RandomBBoxTransform',
+        shift_factor=0.25,
+        rotate_factor=180,
+        scale_factor=(0.7, 1.3)),
     dict(type='TopdownAffine', input_size=codec['input_size']),
     dict(type='GenerateTarget', encoder=codec),
     dict(type='PackPoseInputs')
 ]
 val_pipeline = [
     dict(type='LoadImage'),
-    dict(type='GetBBoxCenterScale'),
+    dict(type='GetBBoxCenterScale', padding=0.8),
     dict(type='TopdownAffine', input_size=codec['input_size']),
     dict(type='PackPoseInputs')
 ]
 
 # data loaders
 train_dataloader = dict(
-    batch_size=32,
-    num_workers=2,
+    batch_size=64,
+    num_workers=4,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0924-Train.json',
+        ann_file='annotations/Fish-Tracker-0929-Train.json',
         data_prefix=dict(img='images/Train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
-    batch_size=24,
-    num_workers=2,
+    batch_size=32,
+    num_workers=4,
     persistent_workers=True,
     drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
@@ -137,17 +145,19 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0924-Test.json',
-        # ann_file='annotations/Fish-Tracker-0914-Train.json',
+        ann_file='annotations/Fish-Tracker-0929-Test.json',
         data_prefix=dict(img='images/Test/'),
-        # data_prefix=dict(img='images/Train/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))
 test_dataloader = val_dataloader
 
 # evaluators
-val_evaluator = [dict(type='PCKAccuracy', thr=0.05), dict(type='AUC')]
+val_evaluator = [
+    dict(type='PCKAccuracy', thr=0.2),
+    dict(type='AUC'),
+    dict(type='EPE'),
+]
 test_evaluator = val_evaluator
 
 visualizer = dict(vis_backends=[

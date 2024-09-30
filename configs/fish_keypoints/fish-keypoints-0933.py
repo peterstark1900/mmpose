@@ -1,7 +1,7 @@
 _base_ = ['../_base_/default_runtime.py']
 
 # runtime
-train_cfg = dict(max_epochs=220, val_interval=10)
+train_cfg = dict(max_epochs=210, val_interval=10)
 
 # optimizer
 optim_wrapper = dict(optimizer=dict(
@@ -17,14 +17,14 @@ param_scheduler = [
     dict(
         type='MultiStepLR',
         begin=0,
-        end=50,
-        milestones=[10, 40],
+        end=210,
+        milestones=[170, 200],
         gamma=0.1,
         by_epoch=True)
 ]
 
 # automatically scaling LR based on the actual training batch size
-auto_scale_lr = dict(base_batch_size=512)
+auto_scale_lr = dict(base_batch_size=256)
 
 # hooks
 default_hooks = dict(checkpoint=dict(save_best='AUC', rule='greater'))
@@ -32,8 +32,6 @@ default_hooks = dict(checkpoint=dict(save_best='AUC', rule='greater'))
 # codec settings
 codec = dict(
     type='MSRAHeatmap', input_size=(160, 160), heatmap_size=(40, 40), sigma=2)
-# codec = dict(
-# type='MSRAHeatmap', input_size=(1920, 1080), heatmap_size=(240, 135), sigma=2)
 
 # model settings
 model = dict(
@@ -45,8 +43,8 @@ model = dict(
         bgr_to_rgb=True),
     backbone=dict(
         type='ResNet',
-        depth=50,
-        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet50'),
+        depth=152,
+        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet152'),
     ),
     head=dict(
         type='HeatmapHead',
@@ -62,11 +60,10 @@ model = dict(
 
 # base dataset settings
 # dataset_type = 'ZebraDataset'
-dataset_type = 'Fish0914Dataset' # 数据集类名
-# data_mode = 'topdown'
-data_mode = 'bottomup'
+dataset_type = 'Fish0929Dataset' # 数据集类名
+data_mode = 'topdown'
 # data_root = 'data/zebra/'
-data_root = 'data/Fish-Tracker-0914/'
+data_root = 'data/Fish-Tracker-0929/'
 
 # pipelines
 train_pipeline = [
@@ -91,7 +88,7 @@ val_pipeline = [
 
 # data loaders
 train_dataloader = dict(
-    batch_size=32,
+    batch_size=64,
     num_workers=2,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
@@ -99,12 +96,12 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0914-Train.json',
+        ann_file='annotations/Fish-Tracker-0929-Train.json',
         data_prefix=dict(img='images/Train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
-    batch_size=16,
+    batch_size=32,
     num_workers=2,
     persistent_workers=True,
     drop_last=False,
@@ -113,10 +110,8 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0914-Test.json',
-        # ann_file='annotations/Fish-Tracker-0914-Train.json',
+        ann_file='annotations/Fish-Tracker-0929-Test.json',
         data_prefix=dict(img='images/Test/'),
-        # data_prefix=dict(img='images/Train/'),
         test_mode=True,
         pipeline=val_pipeline,
     ))

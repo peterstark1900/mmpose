@@ -44,42 +44,40 @@
 #     data_sample=results,
 #     show=True)
 
-# # from mmpose.apis import MMPoseInferencer
-
-# # # img_path = '/home/peter/Desktop/Fish-Dataset/Mix-Small/M40W05-Mix-Small.mp4'
-# # img_path = '/home/peter/Desktop/Fish-Dataset/test1.png'
-# # # # 使用模型别名创建推理器
-# # # inferencer = MMPoseInferencer('human')
-# # # 使用模型配置文件和权重文件的路径或 URL 构建推理器
-# # inferencer = MMPoseInferencer(
-# #     pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0909.py',
-# #     pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0909/best_AUC_epoch_50.pth'
-# # )
-
-# # # # MMPoseInferencer采用了惰性推断方法，在给定输入时创建一个预测生成器
-# # # result_generator = inferencer(img_path, show=True)
-# # # result = next(result_generator)
-
-# # result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/inferencer_output/vis_results')
-# # result = next(result_generator)
 
 from mmpose.apis import MMPoseInferencer
 
 inferencer = MMPoseInferencer(
     # 假设姿态估计器是在自定义数据集上训练的
-    pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0922.py',
-    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0922/epoch_250.pth',
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0922.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0922/epoch_250.pth',
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0924.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0924/best_PCK_epoch_30.pth',
+    # det_cat_ids=[0],
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0930.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0930/best_AUC_epoch_40.pth',
+    # det_cat_ids=[0],
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0932.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0932/best_PCK_epoch_10.pth',
+    # det_cat_ids=[0],
+    pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0933.py',
+    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0933/best_AUC_epoch_210.pth',
     det_cat_ids=[0],
 )
 
 # img_path = '/home/peter/Desktop/Fish-Dataset/gold-fish-0921-v2-test/images/Test/frame_000673.PNG'
 # img_path = '/home/peter/Desktop/Fish-Dataset/视频/第三组/白.mp4'
-img_path = '/home/peter/Desktop/Fish-Dataset/视频/第一组/45&0.5.mp4'
+# img_path = '/home/peter/mmpose/data/Fish-Tracker-0924/images/Train/fish_10_frame_000019.PNG'
+# img_path = '/home/peter/Desktop/Fish-Dataset/视频/第一组/45&0.5.mp4'
+# img_path = '/home/peter/Desktop/Fish-Dataset/视频/第二组/亮.mp4'
+img_path = '/home/peter/Desktop/Fish-Dataset/Mix-Small/M40W30-Mix-Small.mp4'
 
-result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0922-v1')
+
+result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929')
 
 # result_generator = inferencer(img_path, show=True)
 # result = next(result_generator)
+
 results = [result for result in result_generator]
 
 

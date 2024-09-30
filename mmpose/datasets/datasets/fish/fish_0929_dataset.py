@@ -9,7 +9,7 @@ from ..base import BaseCocoStyleDataset
 
 
 @DATASETS.register_module()
-class Fish0924Dataset(BaseCocoStyleDataset):
+class Fish0929Dataset(BaseCocoStyleDataset):
     """ZebraDataset for animal pose estimation.
 
     "DeepPoseKit, a software toolkit for fast and robust animal
@@ -60,7 +60,7 @@ class Fish0924Dataset(BaseCocoStyleDataset):
             image. Default: 1000.
     """
 
-    METAINFO: dict = dict(from_file='configs/_base_/datasets/fish_0924.py')
+    METAINFO: dict = dict(from_file='configs/_base_/datasets/fish_0929.py')
 
     def parse_data_info(self, raw_data_info: dict) -> Optional[dict]:
         """Parse raw Zebra annotation of an instance.
@@ -84,7 +84,7 @@ class Fish0924Dataset(BaseCocoStyleDataset):
 
         # get bbox in shape [1, 4], formatted as xywh
         # use the entire image which is 1920x1080
-        bbox = np.array([0, 0, 640, 640], dtype=np.float32).reshape(1, 4)
+        bbox = np.array([0, 0, 1920, 1080], dtype=np.float32).reshape(1, 4)
 
         # keypoints in shape [1, K, 2] and keypoints_visible in [1, K]
         _keypoints = np.array(

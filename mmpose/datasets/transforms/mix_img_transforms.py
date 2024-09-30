@@ -197,6 +197,8 @@ class Mosaic(MixImageTransform):
     def _create_mosaic_image(self, results, mixed_data_list):
         """Create the mosaic image and corresponding annotations by combining
         four input images."""
+        # print('mixed_data_list')
+        # print(mixed_data_list)
 
         # init mosaic image
         img_scale_w, img_scale_h = self.img_scale
@@ -238,9 +240,14 @@ class Mosaic(MixImageTransform):
                 bboxes *= scale_ratio
                 bboxes[..., ::2] += padw
                 bboxes[..., 1::2] += padh
-
+                # print('bboxes')
+                # print(bboxes)
                 annos['bboxes'].append(bboxes)
+                # print('bbox_scores')
+                # print(data['bbox_score'])
                 annos['bbox_scores'].append(data['bbox_score'])
+                # print('category_id')
+                # print(data['category_id'])
                 annos['category_id'].append(data['category_id'])
 
             if 'keypoints' in data:
