@@ -60,8 +60,17 @@ inferencer = MMPoseInferencer(
     # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0932.py',
     # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0932/best_PCK_epoch_10.pth',
     # det_cat_ids=[0],
-    pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0933.py',
-    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0933/best_AUC_epoch_210.pth',
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0933.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0933/best_AUC_epoch_210.pth',
+    # det_cat_ids=[0],
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0934.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0934/best_EPE_epoch_120.pth',
+    # det_cat_ids=[0],
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1001.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1001/best_EPE_epoch_110.pth',
+    # det_cat_ids=[0],
+    pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1002.py',
+    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1002/best_AUC_epoch_200.pth',
     det_cat_ids=[0],
 )
 
@@ -70,7 +79,10 @@ inferencer = MMPoseInferencer(
 # img_path = '/home/peter/mmpose/data/Fish-Tracker-0924/images/Train/fish_10_frame_000019.PNG'
 # img_path = '/home/peter/Desktop/Fish-Dataset/视频/第一组/45&0.5.mp4'
 # img_path = '/home/peter/Desktop/Fish-Dataset/视频/第二组/亮.mp4'
-img_path = '/home/peter/Desktop/Fish-Dataset/Mix-Small/M40W30-Mix-Small.mp4'
+# img_path = '/home/peter/Desktop/Fish-Dataset/Mix-Small/M40W10-Mix-Small.mp4'
+# img_path = '/home/peter/Desktop/Fish-Dataset/Fish-1001/M50W10-v1.mp4'
+img_path = '/home/peter/Desktop/Fish-Dataset/Fish-1001/goldfish2-1080-v4.mp4'
+
 
 
 result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929')

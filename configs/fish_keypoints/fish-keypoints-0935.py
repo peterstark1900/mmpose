@@ -90,10 +90,10 @@ model = dict(
 
 # base dataset settings
 # dataset_type = 'ZebraDataset'
-dataset_type = 'Fish0929Dataset' # 数据集类名
+dataset_type = 'Fish0924Dataset' # 数据集类名
 data_mode = 'topdown'
 # data_root = 'data/zebra/'
-data_root = 'data/Fish-Tracker-0929/'
+data_root = 'data/Fish-Tracker-0924/'
 
 # pipelines
 train_pipeline = [
@@ -126,7 +126,7 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0929-Train.json',
+        ann_file='annotations/Fish-Tracker-0924-Train.json',
         data_prefix=dict(img='images/Train/'),
         pipeline=train_pipeline,
     ))
@@ -140,7 +140,7 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0929-Test.json',
+        ann_file='annotations/Fish-Tracker-0924-Test.json',
         data_prefix=dict(img='images/Test/'),
         test_mode=True,
         pipeline=val_pipeline,

@@ -1,29 +1,13 @@
 _base_ = ['../_base_/default_runtime.py']
 
 # runtime
-train_cfg = dict(max_epochs=120, val_interval=10)
+train_cfg = dict(max_epochs=210, val_interval=10)
 
 # optimizer
-custom_imports = dict(
-    imports=['mmpose.engine.optim_wrappers.layer_decay_optim_wrapper'],
-    allow_failed_imports=False)
-
-optim_wrapper = dict(
-    optimizer=dict(
-        type='AdamW', lr=5e-4, betas=(0.9, 0.999), weight_decay=0.1),
-    paramwise_cfg=dict(
-        num_layers=12,
-        layer_decay_rate=0.75,
-        custom_keys={
-            'bias': dict(decay_multi=0.0),
-            'pos_embed': dict(decay_mult=0.0),
-            'relative_position_bias_table': dict(decay_mult=0.0),
-            'norm': dict(decay_mult=0.0),
-        },
-    ),
-    constructor='LayerDecayOptimWrapperConstructor',
-    clip_grad=dict(max_norm=1., norm_type=2),
-)
+optim_wrapper = dict(optimizer=dict(
+    type='Adam',
+    lr=5e-4,
+))
 
 # learning policy
 param_scheduler = [
@@ -40,15 +24,14 @@ param_scheduler = [
 ]
 
 # automatically scaling LR based on the actual training batch size
-auto_scale_lr = dict(base_batch_size=512)
+auto_scale_lr = dict(base_batch_size=256)
 
 # hooks
-default_hooks = dict(
-    checkpoint=dict(save_best='EPE', rule='less', max_keep_ckpts=1))
+default_hooks = dict(checkpoint=dict(save_best='AUC', rule='greater'))
 
 # codec settings
 codec = dict(
-    type='UDPHeatmap', input_size=(192, 256), heatmap_size=(48, 64), sigma=2)
+    type='MSRAHeatmap', input_size=(160, 160), heatmap_size=(40, 40), sigma=2)
 
 # model settings
 model = dict(
@@ -59,41 +42,28 @@ model = dict(
         std=[58.395, 57.12, 57.375],
         bgr_to_rgb=True),
     backbone=dict(
-        type='mmpretrain.VisionTransformer',
-        arch='base',
-        img_size=(256, 192),
-        patch_size=16,
-        qkv_bias=True,
-        drop_path_rate=0.3,
-        with_cls_token=False,
-        out_type='featmap',
-        patch_cfg=dict(padding=2),
-        init_cfg=dict(
-            type='Pretrained',
-            checkpoint='https://download.openmmlab.com/mmpose/'
-            'v1/pretrained_models/mae_pretrain_vit_base.pth'),
+        type='ResNet',
+        depth=152,
+        init_cfg=dict(type='Pretrained', checkpoint='torchvision://resnet152'),
     ),
     head=dict(
         type='HeatmapHead',
-        in_channels=768,
+        in_channels=2048,
         out_channels=2,
-        deconv_out_channels=(256, 256),
-        deconv_kernel_sizes=(4, 4),
         loss=dict(type='KeypointMSELoss', use_target_weight=True),
         decoder=codec),
     test_cfg=dict(
         flip_test=True,
         flip_mode='heatmap',
-        shift_heatmap=False,
+        shift_heatmap=True,
     ))
-
 
 # base dataset settings
 # dataset_type = 'ZebraDataset'
-dataset_type = 'Fish0929Dataset' # 数据集类名
+dataset_type = 'Fish1001Dataset' # 数据集类名
 data_mode = 'topdown'
 # data_root = 'data/zebra/'
-data_root = 'data/Fish-Tracker-0929/'
+data_root = 'data/Fish-Tracker-1001/'
 
 # pipelines
 train_pipeline = [
@@ -119,20 +89,20 @@ val_pipeline = [
 # data loaders
 train_dataloader = dict(
     batch_size=64,
-    num_workers=4,
+    num_workers=2,
     persistent_workers=True,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0929-Train.json',
+        ann_file='annotations/Fish-Tracker-1001-Train.json',
         data_prefix=dict(img='images/Train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
     batch_size=32,
-    num_workers=4,
+    num_workers=2,
     persistent_workers=True,
     drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
@@ -140,7 +110,7 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0929-Test.json',
+        ann_file='annotations/Fish-Tracker-1001-Test.json',
         data_prefix=dict(img='images/Test/'),
         test_mode=True,
         pipeline=val_pipeline,
