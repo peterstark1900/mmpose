@@ -84,24 +84,24 @@ inferencer = MMPoseInferencer(
     # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-0934.py',
     # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-0934/best_EPE_epoch_120.pth',
     # det_cat_ids=[0],
-    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1001.py',
-    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1001/epoch_220.pth',
-    # det_cat_ids=[0],
-    # det_model='/home/peter/mmdetection/configs/fish/peter-rtmdet_tiny_8xb32-300e_coco.py', 
-    # det_weights='/home/peter/mmdetection/work_dirs/peter-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth',
-    # device='cuda:0',
+    pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1001.py',
+    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1001/epoch_220.pth',
+    det_cat_ids=[0],
+    det_model='/home/peter/mmdetection/configs/fish/peter-rtmdet_tiny_8xb32-300e_coco.py', 
+    det_weights='/home/peter/mmdetection/work_dirs/peter-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth',
+    device='cuda:0',
     # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1002.py',
     # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1002/best_AUC_epoch_200.pth',
     # det_cat_ids=[0],
     # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1003.py',
     # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1003/epoch_50.pth',
     # det_cat_ids=[0],
-    pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1004.py',
-    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1004/best_coco_AP_epoch_220.pth',
-    det_cat_ids=[0],
-    det_model='/home/peter/mmdetection/configs/fish/peter-rtmdet_tiny_8xb32-300e_coco.py', 
-    det_weights='/home/peter/mmdetection/work_dirs/peter-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth',
-    device='cuda:0'
+    # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1004.py',
+    # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1004/best_coco_AP_epoch_220.pth',
+    # det_cat_ids=[0],
+    # det_model='/home/peter/mmdetection/configs/fish/peter-rtmdet_tiny_8xb32-300e_coco.py', 
+    # det_weights='/home/peter/mmdetection/work_dirs/peter-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth',
+    # device='cuda:0'
     # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1005.py',
     # pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1005/best_EPE_epoch_100.pth',
     # det_cat_ids=[0],
@@ -134,7 +134,8 @@ img_path = '/home/peter/Desktop/Fish-Dataset/视频/第二组/亮.mp4'
 
 
  
-result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
+# result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
+result_generator = inferencer('webcam:0',vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929',kpt_thr = 0.2, draw_bbox = True)
 
 # result_generator = inferencer(img_path, show=True)
 # result = next(result_generator)

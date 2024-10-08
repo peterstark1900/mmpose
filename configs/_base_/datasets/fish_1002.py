@@ -1,5 +1,5 @@
 dataset_info = dict(
-    dataset_name='fish_1001',
+    dataset_name='fish_1002',
     paper_info=dict(
         author='Graving, Jacob M and Chae, Daniel and Naik, Hemal and '
         'Li, Liang and Koger, Benjamin and Costelloe, Blair R and '

@@ -121,7 +121,7 @@ model = dict(
         loss_oks=dict(
             type='OKSLoss',
             reduction='none',
-            metainfo='configs/_base_/datasets/fish_0924.py',
+            metainfo='configs/_base_/datasets/fish_1001.py',
             norm_target_weight=True,
             loss_weight=30.0),
         loss_vis=dict(
@@ -192,14 +192,14 @@ train_pipeline_stage2 = [
 ]
 
 data_mode = 'bottomup'
-data_root = 'data/Fish-Tracker-0924/'
+data_root = 'data/Fish-Tracker-1001/'
 
 dataset_coco = dict(
-    type='Fish0924Dataset',
+    type='Fish1001Dataset',
     data_root=data_root,
     data_mode=data_mode,
     filter_cfg=dict(filter_empty_gt=False, min_size=32),
-    ann_file='annotations/Fish-Tracker-0924-Train.json',
+    ann_file='annotations/Fish-Tracker-1001-Train.json',
     data_prefix=dict(img='images/Train/'),
     pipeline=train_pipeline_stage1,
 )
@@ -230,10 +230,10 @@ val_dataloader = dict(
     drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
     dataset=dict(
-        type='Fish0924Dataset',
+        type='Fish1001Dataset',
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-0924-Test.json',
+        ann_file='annotations/Fish-Tracker-1001-Test.json',
         data_prefix=dict(img='images/Test/'),
         test_mode=True,
         pipeline=val_pipeline,
@@ -243,7 +243,7 @@ test_dataloader = val_dataloader
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file=data_root + 'annotations/Fish-Tracker-0924-Test.json',
+    ann_file=data_root + 'annotations/Fish-Tracker-1001-Test.json',
     score_mode='bbox',
     nms_mode='none',
 )

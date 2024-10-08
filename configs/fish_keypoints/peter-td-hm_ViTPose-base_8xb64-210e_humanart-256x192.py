@@ -1,7 +1,7 @@
 _base_ = ['../_base_/default_runtime.py']
 
 # runtime
-train_cfg = dict(max_epochs=220, val_interval=10)
+train_cfg = dict(max_epochs=210, val_interval=10)
 
 # optimizer
 custom_imports = dict(
@@ -38,14 +38,13 @@ param_scheduler = [
         gamma=0.1,
         by_epoch=True)
 ]
-target_type = 'GaussianHeatmap'
+
 # automatically scaling LR based on the actual training batch size
 auto_scale_lr = dict(base_batch_size=512)
 
 # hooks
-# default_hooks = dict(checkpoint=dict(save_best='coco/AP', rule='greater'))
 default_hooks = dict(
-    checkpoint=dict(save_best='EPE', rule='less', max_keep_ckpts=1))
+    checkpoint=dict(save_best='coco/AP', rule='greater', max_keep_ckpts=1))
 
 # codec settings
 codec = dict(
@@ -72,22 +71,12 @@ model = dict(
         init_cfg=dict(
             type='Pretrained',
             checkpoint='https://download.openmmlab.com/mmpose/'
-            'v1/pretrained_models/mae_pretrain_vit_base.pth',
-            # checkpoint='/home/peter/mmpretrain/work_dirs/mae_vit_base_400_peter/peter-epoch_400.pth',
-            # prefix='backbone',
-            ),
-        #  init_cfg=dict[
-        #       # type='Pretrained',
-        #     # checkpoint='https://download.openmmlab.com/mmpose/'
-        #     # 'v1/pretrained_models/mae_pretrain_vit_base.pth'),
-        #     checkpoint='/home/peter/mmpretrain/work_dirs/mae_vit_base_400_peter/epoch_400.pth'
-        #  ]
-           
+            'v1/pretrained_models/mae_pretrain_vit_base.pth'),
     ),
     head=dict(
         type='HeatmapHead',
         in_channels=768,
-        out_channels=2,
+        out_channels=17,
         deconv_out_channels=(256, 256),
         deconv_kernel_sizes=(4, 4),
         loss=dict(type='KeypointMSELoss', use_target_weight=True),
@@ -96,16 +85,20 @@ model = dict(
         flip_test=True,
         flip_mode='heatmap',
         shift_heatmap=False,
-        
     ))
+
+# base dataset settings
+data_root = 'data/'
+dataset_type = 'HumanArtDataset'
+data_mode = 'topdown'
 
 # pipelines
 train_pipeline = [
     dict(type='LoadImage'),
     dict(type='GetBBoxCenterScale'),
-    # dict(type='RandomFlip', direction='horizontal'),
-    # dict(type='RandomHalfBody'),
-    # dict(type='RandomBBoxTransform'),
+    dict(type='RandomFlip', direction='horizontal'),
+    dict(type='RandomHalfBody'),
+    dict(type='RandomBBoxTransform'),
     dict(type='TopdownAffine', input_size=codec['input_size'], use_udp=True),
     dict(type='GenerateTarget', encoder=codec),
     dict(type='PackPoseInputs')
@@ -117,14 +110,6 @@ val_pipeline = [
     dict(type='PackPoseInputs')
 ]
 
-# base dataset settings
-# dataset_type = 'ZebraDataset'
-dataset_type = 'Fish1002Dataset' # 数据集类名
-data_mode = 'topdown'
-# data_mode = 'bottomup'
-# data_root = 'data/zebra/'
-data_root = 'data/Fish-Tracker-1002/'
-
 # data loaders
 train_dataloader = dict(
     batch_size=64,
@@ -135,8 +120,9 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-1002-Train-new_bbox.json',
-        data_prefix=dict(img='images/Train/'),
+        # ann_file='HumanArt/annotations/training_humanart_coco.json',
+        ann_file='HumanArt/annotations/training_humanart_cosplay.json',
+        data_prefix=dict(img=''),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
@@ -149,29 +135,19 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-1002-Test-new_bbox.json',
-        # bbox_file='/home/peter/mmpose/data/Fish-Tracker-1001/annotations/Fish-Tracker-1001-Test-detection-with-score.json',
-        data_prefix=dict(img='images/Test/'),
+        ann_file='HumanArt/annotations/validation_humanart_cosplay.json',
+        # bbox_file=f'{data_root}HumanArt/person_detection_results/'
+        # 'HumanArt_validation_detections_AP_H_56_person.json',
+        # bbox_file=f'{data_root}HumanArt/person_detection_results/'
+        # 'HumanArt_cosplay_validation_detections_AP_H_56_person.json',
+        data_prefix=dict(img=''),
         test_mode=True,
         pipeline=val_pipeline,
     ))
 test_dataloader = val_dataloader
 
 # evaluators
-val_evaluator = [
-    dict(type='PCKAccuracy', thr=0.2),
-    dict(type='AUC'),
-    dict(type='EPE'),
-]
+val_evaluator = dict(
+    type='CocoMetric',
+    ann_file=data_root + 'HumanArt/annotations/validation_humanart.json')
 test_evaluator = val_evaluator
-
-# # evaluators
-# val_evaluator = dict(
-#     type='CocoMetric',
-#     ann_file=data_root + 'annotations/Fish-Tracker-1001-Test.json')
-# test_evaluator = val_evaluator
-
-visualizer = dict(vis_backends=[
-    dict(type='LocalVisBackend'),
-    dict(type='TensorboardVisBackend'),
-])

@@ -1,7 +1,7 @@
 _base_ = ['../_base_/default_runtime.py']
 
 # runtime
-train_cfg = dict(max_epochs=220, val_interval=10)
+train_cfg = dict(max_epochs=120, val_interval=10)
 
 # optimizer
 custom_imports = dict(
@@ -38,22 +38,33 @@ param_scheduler = [
         gamma=0.1,
         by_epoch=True)
 ]
-target_type = 'GaussianHeatmap'
+
 # automatically scaling LR based on the actual training batch size
 auto_scale_lr = dict(base_batch_size=512)
 
 # hooks
-# default_hooks = dict(checkpoint=dict(save_best='coco/AP', rule='greater'))
 default_hooks = dict(
     checkpoint=dict(save_best='EPE', rule='less', max_keep_ckpts=1))
 
 # codec settings
 codec = dict(
     type='UDPHeatmap', input_size=(192, 256), heatmap_size=(48, 64), sigma=2)
+# codec = dict(
+    # type='UDPHeatmap', input_size=(256, 256), heatmap_size=(64, 64), sigma=2)
+# codec = dict(
+#     type='DecoupledHeatmap', input_size=(512, 512), heatmap_size=(128, 128))
+# codec = dict(
+#     type='SPR',
+#     input_size=(512, 512),
+#     heatmap_size=(128, 128),
+#     sigma=(4, 2),
+#     minimal_diagonal_length=32**0.5,
+#     generate_keypoint_heatmaps=True,
+#     decode_max_instances=30)
 
 # model settings
 model = dict(
-    type='TopdownPoseEstimator',
+    type='BottomupPoseEstimator',
     data_preprocessor=dict(
         type='PoseDataPreprocessor',
         mean=[123.675, 116.28, 103.53],
@@ -66,23 +77,14 @@ model = dict(
         patch_size=16,
         qkv_bias=True,
         drop_path_rate=0.3,
+        # with_cls_token=False,
         with_cls_token=True,
         out_type='featmap',
         patch_cfg=dict(padding=2),
         init_cfg=dict(
             type='Pretrained',
             checkpoint='https://download.openmmlab.com/mmpose/'
-            'v1/pretrained_models/mae_pretrain_vit_base.pth',
-            # checkpoint='/home/peter/mmpretrain/work_dirs/mae_vit_base_400_peter/peter-epoch_400.pth',
-            # prefix='backbone',
-            ),
-        #  init_cfg=dict[
-        #       # type='Pretrained',
-        #     # checkpoint='https://download.openmmlab.com/mmpose/'
-        #     # 'v1/pretrained_models/mae_pretrain_vit_base.pth'),
-        #     checkpoint='/home/peter/mmpretrain/work_dirs/mae_vit_base_400_peter/epoch_400.pth'
-        #  ]
-           
+            'v1/pretrained_models/mae_pretrain_vit_base.pth'),
     ),
     head=dict(
         type='HeatmapHead',
@@ -96,34 +98,40 @@ model = dict(
         flip_test=True,
         flip_mode='heatmap',
         shift_heatmap=False,
-        
     ))
+
+
+# base dataset settings
+# dataset_type = 'ZebraDataset'
+dataset_type = 'Fish1001Dataset' # 数据集类名
+# data_mode = 'topdown'
+data_mode = 'bottomup'
+# data_root = 'data/zebra/'
+data_root = 'data/Fish-Tracker-1001/'
 
 # pipelines
 train_pipeline = [
     dict(type='LoadImage'),
-    dict(type='GetBBoxCenterScale'),
-    # dict(type='RandomFlip', direction='horizontal'),
-    # dict(type='RandomHalfBody'),
-    # dict(type='RandomBBoxTransform'),
-    dict(type='TopdownAffine', input_size=codec['input_size'], use_udp=True),
+    dict(type='BottomupRandomAffine', input_size=codec['input_size']),
+    dict(type='RandomFlip', direction='horizontal'),
     dict(type='GenerateTarget', encoder=codec),
-    dict(type='PackPoseInputs')
+    dict(type='BottomupGetHeatmapMask'),
+    dict(type='PackPoseInputs'),
 ]
 val_pipeline = [
     dict(type='LoadImage'),
-    dict(type='GetBBoxCenterScale'),
-    dict(type='TopdownAffine', input_size=codec['input_size'], use_udp=True),
-    dict(type='PackPoseInputs')
+    dict(
+        type='BottomupResize',
+        input_size=codec['input_size'],
+        size_factor=64,
+        resize_mode='expand'),
+    dict(
+        type='PackPoseInputs',
+        meta_keys=('id', 'img_id', 'img_path', 'crowd_index', 'ori_shape',
+                   'img_shape', 'input_size', 'input_center', 'input_scale',
+                   'flip', 'flip_direction', 'flip_indices', 'raw_ann_info',
+                   'skeleton_links'))
 ]
-
-# base dataset settings
-# dataset_type = 'ZebraDataset'
-dataset_type = 'Fish1002Dataset' # 数据集类名
-data_mode = 'topdown'
-# data_mode = 'bottomup'
-# data_root = 'data/zebra/'
-data_root = 'data/Fish-Tracker-1002/'
 
 # data loaders
 train_dataloader = dict(
@@ -135,7 +143,7 @@ train_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-1002-Train-new_bbox.json',
+        ann_file='annotations/Fish-Tracker-1001-Train.json',
         data_prefix=dict(img='images/Train/'),
         pipeline=train_pipeline,
     ))
@@ -149,8 +157,7 @@ val_dataloader = dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-1002-Test-new_bbox.json',
-        # bbox_file='/home/peter/mmpose/data/Fish-Tracker-1001/annotations/Fish-Tracker-1001-Test-detection-with-score.json',
+        ann_file='annotations/Fish-Tracker-1001-Test.json',
         data_prefix=dict(img='images/Test/'),
         test_mode=True,
         pipeline=val_pipeline,
@@ -164,12 +171,6 @@ val_evaluator = [
     dict(type='EPE'),
 ]
 test_evaluator = val_evaluator
-
-# # evaluators
-# val_evaluator = dict(
-#     type='CocoMetric',
-#     ann_file=data_root + 'annotations/Fish-Tracker-1001-Test.json')
-# test_evaluator = val_evaluator
 
 visualizer = dict(vis_backends=[
     dict(type='LocalVisBackend'),
