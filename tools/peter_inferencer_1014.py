@@ -57,7 +57,7 @@ img_path = '/home/peter/Desktop/Fish-Dataset/Fish-1001/goldfish2-1080-v4.mp4'
 
 
  
-# result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
+result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
 
 # result_generator = inferencer(img_path, show=True)
 # result = next(result_generator)
@@ -77,10 +77,14 @@ img_path = '/home/peter/Desktop/Fish-Dataset/Fish-1001/goldfish2-1080-v4.mp4'
 #     predictions = result['predictions'][0]
 #     # print(predictions)  
 #     key_points = []
+#     bboxs = []
 #     for prediction in predictions:
 #         key_points.append(prediction['keypoints'])
-#     print(len(key_points))
-#     print(' ')
+#         bboxs.append(prediction['bbox'][0])
+#     # print(len(key_points))
+#     print(bboxs)
+#     # print(' ')
+    
 #     # current_len = len(key_points)
 #     # if first_time_flag == True:
 #     #     first_time_flag = False
@@ -119,7 +123,7 @@ if not cap.isOpened():
     exit()
 
 # 初始化 VideoWriter 对象
-output_path = '/home/peter/Desktop/Fish-Dataset/test-output-0929/opencv_demo.mp4'
+output_path = '/home/peter/Desktop/Fish-Dataset/test-output-0929/opencv_bbox.mp4'
 fps = cap.get(cv2.CAP_PROP_FPS)
 width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -134,7 +138,7 @@ cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)  # 允许调整窗口大小
 initial_width = 1920
 initial_height = 1080
 real_num = 2
-vis_period = 10
+vis_period = 15
 counter = 0
 while True:
     # 读取视频的每一帧
@@ -142,32 +146,40 @@ while True:
     if not ret:
         print("无法读取帧 (视频结束?). Exiting ...")
         break
-
-
-    if (counter % vis_period) == 0:
-        result_generator = inferencer(frame,kpt_thr = 0.2)
-        for result in result_generator:
-            predictions = result['predictions'][0]
-            # print(predictions)  
-            key_points = []
-            for prediction in predictions:
-                key_points.append(prediction['keypoints'])
-            # print(len(key_points))
-            # print(key_points)
-            # print(' ')
-            # 绘制关键点和线段
+   
+    result_generator = inferencer(frame,kpt_thr = 0.2)
+    for result in result_generator:
+        predictions = result['predictions'][0]
+        # print(predictions)  
+        key_points = []
+        bboxs = []
+        for prediction in predictions:
+            key_points.append(prediction['keypoints'])
+            bboxs.append(prediction['bbox'][0])
+        # print(len(key_points))
+        # print(key_points)
+        # print(' ')
+        for bbox in bboxs:
+            # 绘制边界框
+            x1, y1, x2, y2 = bbox
+            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 255), 2)
+        # 绘制关键点和线段
+        if (counter % vis_period) == 0:
             if len(key_points) == real_num:
-                for fish in key_points:
-                    head = tuple(map(int, fish[0]))
-                    tail = tuple(map(int, fish[1]))
-                    # 绘制头部关键点
-                    cv2.circle(frame, head, 5, (0, 255, 0), -1)  # 绿色圆点
-                    # 绘制尾部关键点
-                    cv2.circle(frame, tail, 5, (0, 0, 255), -1)  # 红色圆点
-                    # 用线段连接头部和尾部关键点
-                    cv2.line(frame, head, tail, (255, 0, 0), 2)  # 蓝色线段
+                plot_key_points = key_points
             else:
                 print('The number of fish is not correct.')
+        for fish in plot_key_points:
+            head = tuple(map(int, fish[0]))
+            tail = tuple(map(int, fish[1]))
+            # 绘制头部关键点
+            cv2.circle(frame, head, 5, (0, 255, 0), -1)  # 绿色圆点
+            # 绘制尾部关键点
+            cv2.circle(frame, tail, 5, (0, 0, 255), -1)  # 红色圆点
+            # 用线段连接头部和尾部关键点
+            cv2.line(frame, head, tail, (255, 0, 0), 2)  # 蓝色线段
+                
+            
     counter += 1
     # 调整帧的大小
     resized_frame = cv2.resize(frame, (initial_width, initial_height))
@@ -176,7 +188,7 @@ while True:
     cv2.imshow(window_name, resized_frame)
 
     # 写入处理后的帧到输出视频文件
-    out.write(frame)
+    out.write(resized_frame)
 
     # # 显示帧
     # cv2.imshow('Video', frame)
