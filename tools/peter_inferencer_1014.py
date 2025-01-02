@@ -150,7 +150,8 @@ while True:
     result_generator = inferencer(frame,kpt_thr = 0.2)
     for result in result_generator:
         predictions = result['predictions'][0]
-        # print(predictions)  
+        print(predictions) 
+        print
         key_points = []
         bboxs = []
         for prediction in predictions:

@@ -193,7 +193,7 @@ class FishDetector():
         # 初始化 VideoCapture 对象
         self.detect_type = detect_type
         if self.detect_type == 'camera':
-            self.cap = cv2.VideoCapture(0)
+            self.cap = cv2.VideoCapture(1)
             if not self.cap.isOpened():
                 print("无法打开摄像头")
                 exit()
@@ -237,11 +237,18 @@ class FishDetector():
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
         for result in result_generator:
+            # print('result:')
+            # print(result)
+            # print(' ')
             predictions = result['predictions'][0]
-            # print(predictions)  
-            self.key_points = []
-            for prediction in predictions:
-                self.key_points.append(prediction['keypoints'])
+            print('predictions:')
+            print(predictions) 
+            print(' ') 
+            print('---------------------------------')
+            # self.key_points = []
+            # for prediction in predictions:
+            #     self.key_points.append(prediction['keypoints'])
+            self.key_points.append(predictions['keypoints'])
             # print(len(key_points))
             # print(key_points)
             # print(' ')
@@ -277,7 +284,7 @@ class FishDetector():
                 break
 
             # 调整帧的大小
-            self.frame = cv2.resize(ori_frame, (self.initial_width, self.initial_height))
+            self.frame = cv2.resize(ori_frame, (1920, 1080))
             # 进行检测
             self.detect_in_frame()
             # 进行绘制
@@ -304,15 +311,15 @@ class FishDetector():
 def main():
     # detect_type = 'video'
     detect_type = 'camera'
-    my_pose_cfg = '/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1004.py'
-    my_pose_weights = '/home/peter/mmpose/work_dirs/fish-keypoints-1004/best_coco_AP_epoch_220.pth'
-    my_detect_cfg = '/home/peter/mmdetection/configs/fish/peter-rtmdet_tiny_8xb32-300e_coco.py'
-    my_detect_weights = '/home/peter/mmdetection/work_dirs/peter-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth'
+    my_pose_cfg = r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1210.py"
+    my_pose_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\best_coco_AP_epoch_340.pth"
+    my_detect_cfg = r"E:\openmmlab\mmdetection\configs\fish\fish1210-rtmdet_tiny_8xb32-300e_coco.py"
+    my_detect_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\epoch_300.pth"
     my_kpt_thr = 0.2
     my_real_num = 1
     my_draw_flag = True
-    my_save_flag = True
-    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/Fish-1001/goldfish2-1080-v4.mp4'
+    my_save_flag = False
+    input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1210\fish-1210-demo2.mp4"
     output_path = 'opencv_demo.mp4'
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
