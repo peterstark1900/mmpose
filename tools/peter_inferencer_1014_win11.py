@@ -186,7 +186,51 @@ import cv2
 # cap.release()
 # out.release()
 # cv2.destroyAllWindows()
+'''
+predictions:
+<PoseDataSample(
 
+    META INFORMATION
+    img_shape: (1080, 1920)
+    input_scale: array([278.9734, 371.9645], dtype=float32)
+    pad_shape: (256, 192)
+    img_path: '000000.jpg'
+    flip_indices: [0, 1, 2, 3]
+    dataset_name: 'fish_1210'
+    ori_shape: (1080, 1920)
+    input_center: array([1053.9369,  689.4169], dtype=float32)
+    input_size: (192, 256)
+    batch_input_shape: (256, 192)
+
+    DATA FIELDS
+    pred_instances: <InstanceData(
+
+            META INFORMATION
+
+            DATA FIELDS
+            bboxes: array([[ 942.34753,  623.7214 , 1165.5262 ,  755.1124 ]], dtype=float32)
+            keypoint_scores: array([[0.31500334, 0.38769138, 1.2576126 , 0.23234713]], dtype=float32)
+            keypoints_visible: array([[0.31500334, 0.38769138, 1.2576126 , 0.23234713]], dtype=float32)
+            keypoints: array([[[1121.5007 ,  643.6478 ],
+                        [1075.7317 ,  723.5621 ],
+                        [1024.8772 ,  720.65607],
+                        [ 986.37305,  739.5449 ]]], dtype=float32)
+            bbox_scores: array([0.69327235], dtype=float32)
+        ) at 0x1e45a326df0>
+    gt_instances: <InstanceData(
+
+            META INFORMATION
+
+            DATA FIELDS
+            bboxes: array([[ 942.34753,  623.7214 , 1165.5262 ,  755.1124 ]], dtype=float32)
+            bbox_scores: array([0.69327235], dtype=float32)
+            keypoints_visible: array([[[1.]]])
+            bbox_scales: array([[278.9734, 371.9645]], dtype=float32)
+        ) at 0x1e45a2f2c10>
+) at 0x1e45a326b80>
+
+---------------------------------
+'''
 
 class FishDetector():
     def __init__(self,detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag,input_vidoe_path = None, output_path = None):
@@ -237,30 +281,31 @@ class FishDetector():
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
         for result in result_generator:
-            # print('result:')
-            # print(result)
-            # print(' ')
             predictions = result['predictions'][0]
-            print('predictions:')
-            print(predictions) 
-            print(' ') 
-            print('---------------------------------')
-            # self.key_points = []
-            # for prediction in predictions:
-            #     self.key_points.append(prediction['keypoints'])
-            self.key_points.append(predictions['keypoints'])
-            # print(len(key_points))
-            # print(key_points)
-            # print(' ')
+            self.key_points.append(predictions.pred_instances.keypoints)
+
 
     def draw_in_frame(self):
         # 绘制关键点和线段
         if len(self.key_points) == self.real_num:
             for fish in self.key_points:
-                head = tuple(map(int, fish[0]))
-                body = tuple(map(int, fish[1]))
-                joint = tuple(map(int, fish[2]))
-                tail = tuple(map(int, fish[3]))
+                '''example:
+                [[[1121.5007   643.6478 ]
+                    [1075.7317   723.5621 ]
+                    [1024.8772   720.65607]
+                    [ 986.37305  739.5449 ]]]
+                '''
+                head = tuple(map(int, fish[0][0]))
+                body = tuple(map(int, fish[0][1]))
+                joint = tuple(map(int, fish[0][2]))
+                tail = tuple(map(int, fish[0][3]))
+                print(head)
+                print(body)
+                print(joint)
+                print(tail)
+                print('---------------------------------')
+
+
                 # 绘制头部关键点
                 cv2.circle(self.frame, head, 5, (0, 255, 0), -1)
                 # 绘制身体关键点
@@ -273,6 +318,9 @@ class FishDetector():
                 cv2.line(self.frame, head, body, (255, 0, 0), 2)
                 cv2.line(self.frame, body, joint, (255, 0, 0), 2)
                 cv2.line(self.frame, joint, tail, (255, 0, 0), 2)
+
+    def reset_key_points(self):
+        self.key_points = []
 
         
     def frame_pipeline(self):
@@ -292,6 +340,9 @@ class FishDetector():
                 self.draw_in_frame()
             # 显示帧
             cv2.imshow(self.window_name, self.frame)
+            cv2.waitKey(1)
+
+            self.reset_key_points()
 
             # 写入处理后的帧到输出视频文件
             if self.save_flag:
@@ -309,20 +360,36 @@ class FishDetector():
         cv2.destroyAllWindows()
 
 def main():
-    # detect_type = 'video'
-    detect_type = 'camera'
-    my_pose_cfg = r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1210.py"
-    my_pose_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\best_coco_AP_epoch_340.pth"
+    detect_type = 'video'
+    # detect_type = 'camera'
+    my_pose_cfg = r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1222.py"
+    # my_pose_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\best_coco_AP_epoch_340.pth"
+    my_pose_weights = r"E:\openmmlab\mmpose\work_dirs\fish-keypoints-1222\best_coco_AP_epoch_380.pth"
     my_detect_cfg = r"E:\openmmlab\mmdetection\configs\fish\fish1210-rtmdet_tiny_8xb32-300e_coco.py"
-    my_detect_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\epoch_300.pth"
+    # my_detect_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\epoch_300.pth"
+    my_detect_weights = r"E:\openmmlab\mmdetection\work_dirs\fish1222-rtmdet_tiny_8xb32-300e_coco\epoch_300.pth"
     my_kpt_thr = 0.2
     my_real_num = 1
     my_draw_flag = True
     my_save_flag = False
-    input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1210\fish-1210-demo2.mp4"
+    input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4"
     output_path = 'opencv_demo.mp4'
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
+    
+    # keypoints = [[[1121.5007, 643.6478],
+    #                 [1075.7317, 723.5621],
+    #                 [1024.8772, 720.65607],
+    #                 [986.37305, 739.5449]]]
+    
+    # head = tuple(map(int, keypoints[0][0]))
+    # body = tuple(map(int, keypoints[0][1]))
+    # joint = tuple(map(int, keypoints[0][2]))
+    # tail = tuple(map(int, keypoints[0][3]))
+    # print(head)
+    # print(body)
+    # print(joint)
+    # print(tail)
 
 if __name__ == '__main__':
     main()
