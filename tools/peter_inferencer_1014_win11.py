@@ -1,7 +1,7 @@
 from mmpose.apis import MMPoseInferencer
 import numpy as np
 import cv2
-
+import json
 # def average_pos(pos_list):
 #     # pos_list: [[x1,y1],[x2,y2],[x3,y3],[x4,y4],[x5,y5],[x6,y6]]
 #     # 提取 x 坐标
@@ -277,6 +277,8 @@ class FishDetector():
         self.draw_flag = my_draw_flag
         self.real_num = my_real_num
         self.key_points = []
+        self.frame_stamps= []
+        self.keypoint_stamp = {}
 
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
@@ -299,11 +301,18 @@ class FishDetector():
                 body = tuple(map(int, fish[0][1]))
                 joint = tuple(map(int, fish[0][2]))
                 tail = tuple(map(int, fish[0][3]))
-                print(head)
-                print(body)
-                print(joint)
-                print(tail)
-                print('---------------------------------')
+                # print(head)
+                # print(body)
+                # print(joint)
+                # print(tail)
+                # print('---------------------------------')
+
+                self.keypoint_stamp = {
+                "head": head,
+                "body": body,
+                "joint": joint,
+                "tail": tail
+                }
 
 
                 # 绘制头部关键点
@@ -321,6 +330,18 @@ class FishDetector():
 
     def reset_key_points(self):
         self.key_points = []
+        self.keypoint_stamp = {}
+    
+    def update_frame_stamps(self):
+        
+        self.frame_stamps.append(self.keypoint_stamp)
+
+    def export_frame_stamps(self):
+        data = {
+            "frame_stamps": self.frame_stamps
+        }
+        with open('frame_stamps.json', 'w') as f:
+            json.dump(data, f, indent=4)
 
         
     def frame_pipeline(self):
@@ -341,7 +362,9 @@ class FishDetector():
             # 显示帧
             cv2.imshow(self.window_name, self.frame)
             cv2.waitKey(1)
-
+            # 更新frame_stamps
+            self.update_frame_stamps()
+            # 重置key_points
             self.reset_key_points()
 
             # 写入处理后的帧到输出视频文件
@@ -359,23 +382,34 @@ class FishDetector():
             self.out.release()
         cv2.destroyAllWindows()
 
+        # 导出frame_stamps
+        self.export_frame_stamps()
+
+# class DataVisualizer():
+#     def __init__(self, frame_stamps_path):
+#         self.frame_stamps_path = frame_stamps_path
+#         self.data = None
+#     def load_frame_stamps(self):
+#         with open('frame_stamps.json', 'r') as f:
+#         self.data = json.load(f)
+
 def main():
-    detect_type = 'video'
-    # detect_type = 'camera'
-    my_pose_cfg = r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1222.py"
-    # my_pose_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\best_coco_AP_epoch_340.pth"
-    my_pose_weights = r"E:\openmmlab\mmpose\work_dirs\fish-keypoints-1222\best_coco_AP_epoch_380.pth"
-    my_detect_cfg = r"E:\openmmlab\mmdetection\configs\fish\fish1210-rtmdet_tiny_8xb32-300e_coco.py"
-    # my_detect_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\epoch_300.pth"
-    my_detect_weights = r"E:\openmmlab\mmdetection\work_dirs\fish1222-rtmdet_tiny_8xb32-300e_coco\epoch_300.pth"
-    my_kpt_thr = 0.2
-    my_real_num = 1
-    my_draw_flag = True
-    my_save_flag = False
-    input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4"
-    output_path = 'opencv_demo.mp4'
-    fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
-    fish_detector.frame_pipeline()
+    # detect_type = 'video'
+    # # detect_type = 'camera'
+    # my_pose_cfg = r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1222.py"
+    # # my_pose_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\best_coco_AP_epoch_340.pth"
+    # my_pose_weights = r"E:\openmmlab\mmpose\work_dirs\fish-keypoints-1222\best_coco_AP_epoch_380.pth"
+    # my_detect_cfg = r"E:\openmmlab\mmdetection\configs\fish\fish1210-rtmdet_tiny_8xb32-300e_coco.py"
+    # # my_detect_weights = r"C:\Users\peter\OneDrive\毕设\demo_video\epoch_300.pth"
+    # my_detect_weights = r"E:\openmmlab\mmdetection\work_dirs\fish1222-rtmdet_tiny_8xb32-300e_coco\epoch_300.pth"
+    # my_kpt_thr = 0.2
+    # my_real_num = 1
+    # my_draw_flag = True
+    # my_save_flag = False
+    # input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4"
+    # output_path = 'opencv_demo.mp4'
+    # fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
+    # fish_detector.frame_pipeline()
     
     # keypoints = [[[1121.5007, 643.6478],
     #                 [1075.7317, 723.5621],
@@ -391,8 +425,91 @@ def main():
     # print(joint)
     # print(tail)
 
+    # # 保存到json文件
+    # frame_stamps = []
+    # keypoint_stamp1 = {
+    #     "head": head,
+    #     "body": body,
+    #     "joint": joint,
+    #     "tail": tail
+    # }
+    # keypoint_stamp2 = {
+    #     "head": head,
+    #     "body": body,
+    #     "joint": joint,
+    #     "tail": tail
+    # }
+    # # 将keypoint_stamp1与keypoint_stamp2依次添加到frame_stamps中
+    # frame_stamps.append(keypoint_stamp1)
+    # frame_stamps.append(keypoint_stamp2)
+    # print(frame_stamps)
+    # data = {
+    #     "frame_stamps": frame_stamps
+    # }
+    # import json
+    # with open('frame_stamps.json', 'w') as f:
+    #     json.dump(data, f, indent=4)
+
+    # import json
+    with open('frame_stamps.json', 'r') as f:
+        data = json.load(f)
+    # print(data)
+    # print('---------------------------------')
+    # print(data['frame_stamps'])
+    # print('---------------------------------')
+    # print(data['frame_stamps'][0])
+    # print('---------------------------------')
+    # print(data['frame_stamps'][0]['head'])
+    # print('---------------------------------')
+
+    # 创建一个空白窗口
+    cv2.namedWindow('Keypoints Visualization', cv2.WINDOW_NORMAL)
+
+    for frame_stamp in data['frame_stamps']:
+        # 创建一个空白图像
+        frame = np.zeros((1080, 1920, 3), dtype=np.uint8)* 255
+        print(frame_stamp['head'])
+        print(frame_stamp['body'])
+        print(frame_stamp['joint'])
+        print(frame_stamp['tail'])
+        print('---------------------------------')
+        # 绘制关键点和线段
+        head = frame_stamp['head']
+        body = frame_stamp['body']
+        joint = frame_stamp['joint']
+        tail = frame_stamp['tail']
+        # 绘制头部关键点
+        cv2.circle(frame, head, 5, (0, 255, 0), -1)
+        # 绘制身体关键点
+        cv2.circle(frame, body, 5, (0, 255, 0), -1)
+        # 绘制关节关键点
+        cv2.circle(frame, joint, 5, (0, 255, 0), -1)
+        # 绘制尾部关键点
+        cv2.circle(frame, tail, 5, (0, 0, 255), -1)
+        # 用线段连接关键点
+        cv2.line(frame, head, body, (255, 0, 0), 2)
+        cv2.line(frame, body, joint, (255, 0, 0), 2)
+        cv2.line(frame, joint, tail, (255, 0, 0), 2)
+
+        # 显示图像
+        cv2.imshow('Keypoints Visualization', frame)
+        cv2.waitKey(10)
+
+        # 清空图像
+        frame.fill(0)
+
+        # # 等待一段时间以显示每一帧
+        # if cv2.waitKey(500) & 0xFF == ord('q'):
+        #     break
+
+    # 关闭所有窗口
+    cv2.destroyAllWindows()
+
+
+
 if __name__ == '__main__':
     main()
+
 
 
 
