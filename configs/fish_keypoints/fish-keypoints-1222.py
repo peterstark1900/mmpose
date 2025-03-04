@@ -1,7 +1,8 @@
 _base_ = ['../_base_/default_runtime.py']
 
 # runtime
-max_epochs = 420
+# max_epochs = 420
+max_epochs = 1200
 stage2_num_epochs = 30
 base_lr = 4e-3
 
@@ -174,28 +175,28 @@ train_pipeline_stage2 = [
 # data loaders
 train_dataloader = dict(
     batch_size=256,
-    num_workers=10,
-    persistent_workers=True,
+    num_workers=0,
+    persistent_workers=False,
     sampler=dict(type='DefaultSampler', shuffle=True),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-1222-Train.json',
+        ann_file='annotations/Train/Fish-Tracker-1222-Train.json',
         data_prefix=dict(img='images/Train/'),
         pipeline=train_pipeline,
     ))
 val_dataloader = dict(
     batch_size=64,
-    num_workers=10,
-    persistent_workers=True,
+    num_workers=0,
+    persistent_workers=False,
     drop_last=False,
     sampler=dict(type='DefaultSampler', shuffle=False, round_up=False),
     dataset=dict(
         type=dataset_type,
         data_root=data_root,
         data_mode=data_mode,
-        ann_file='annotations/Fish-Tracker-1222-Test.json',
+        ann_file='annotations/Test/Fish-Tracker-1222-Test.json',
         # ann_file='annotations/Fish-Tracker-1222-Train.json',
         data_prefix=dict(img='images/Test/'),
         # data_prefix=dict(img='images/Train/'),
@@ -224,7 +225,7 @@ custom_hooks = [
 # evaluators
 val_evaluator = dict(
     type='CocoMetric',
-    ann_file=data_root + 'annotations/Fish-Tracker-1222-Test.json')
+    ann_file=data_root + 'annotations/Test/Fish-Tracker-1222-Test.json')
 test_evaluator = val_evaluator
 
 visualizer = dict(vis_backends=[

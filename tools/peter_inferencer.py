@@ -110,10 +110,12 @@ inferencer = MMPoseInferencer(
     # det_weights='/home/peter/mmdetection/work_dirs/fish1210-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth',
     # device='cuda:0'
     pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1222.py',
-    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1222/best_coco_AP_epoch_380.pth',
+    pose2d_weights='/home/peter/mmpose/work_dirs/fish-keypoints-1222/epoch_1200_0303_mmpose.pth',
     det_cat_ids=[0],
-    det_model='/home/peter/mmdetection/configs/fish/fish1210-rtmdet_tiny_8xb32-300e_coco.py', 
-    det_weights='/home/peter/mmdetection/work_dirs/fish1210-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth',
+    # det_model='/home/peter/mmdetection/configs/fish/fish1210-rtmdet_tiny_8xb32-300e_coco.py', 
+    # det_weights='/home/peter/mmdetection/work_dirs/fish1210-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth',
+    det_model='/home/peter/mmdetection/configs/fish/fish1222-rtmdet_tiny_8xb32-300e_coco.py', 
+    det_weights='/home/peter/mmdetection/work_dirs/fish1222-rtmdet_tiny_8xb32-300e_coco/epoch_1200_0303_mmdet.pth',
     device='cuda:0'
     
     # pose2d='/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1005.py',
@@ -142,7 +144,7 @@ inferencer = MMPoseInferencer(
 # img_path = '/home/peter/Desktop/Fish-Dataset/fish-1210/VID_20241210_160343.mp4'
 # img_path = '/home/peter/Desktop/Fish-Dataset/fish-1210/VID_20241210_160129.mp4'
 # img_path = '/home/peter/Desktop/Fish-Dataset/fish-1210/fish-1210-demo2.mp4'
-img_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo18.mp4'
+# img_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo18.mp4'
 
 # img_path = '/home/peter/Desktop/Fish-Dataset/Mix-Small/M40W10-Mix-Small.mp4'
 # img_path = '/home/peter/Desktop/Fish-Dataset/Fish-1001/M50W10-v1.mp4'
@@ -152,10 +154,17 @@ img_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo18.mp4'
 # img_path = '/home/peter/Desktop/Fish-Dataset/Fish-1001/goldfish1.png',
 # img_path = '/home/peter/mmpose/data/HumanArt/fes2024-v2.jpeg'
 
+# img_path = '/home/peter/Desktop/Fish-Dataset/Fish-0223/extract_outcome/TEST-MAM30B15W15R15E'
+img_path = '/home/peter/Desktop/Fish-Dataset/Fish-0223/original/fish-0223-demo13.mp4'
 
  
 # result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
-result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/fish-1222/test-output',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
+result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/Fish-0223/model_outcome',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
+
+# pred_save_path = '/home/peter/Desktop/Fish-Dataset/Fish-0223/model_outcome/TEST-MAM30B15W15R15E/images'
+# result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/Fish-0223/model_outcome/TEST-MAM30B15W15R15E/annotations',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True,pred_out_dir=pred_save_path)
+
+
 
 # result_generator = inferencer(img_path, show=True)
 # result = next(result_generator)
