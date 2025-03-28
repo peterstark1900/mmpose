@@ -441,10 +441,10 @@ def peter_inferencer():
     my_kpt_thr = 0.2
     my_real_num = 1
     my_draw_flag = True
-    my_save_flag = False
-    input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4"
+    my_save_flag = True
+    # input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4"
     # input_vidoe_path = r"E:\Fish-0214\fish-0214-demo5.mp4"
-    # input_vidoe_path = r"E:\Fish-0223\fish-0223-demo13.mp4"
+    input_vidoe_path = r"E:\Fish-0223\MAM30B15W20R16E.mp4"
     output_path = 'opencv_demo.mp4'
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
