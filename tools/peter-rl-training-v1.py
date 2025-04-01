@@ -17,23 +17,11 @@ from peter_detector import FishDetector
 # class Fish2DEnv(gym.Env):
 class Fish2DEnv():
      
-    def __init__(self,detector_config_dict):
+    def __init__(self,capture_cfg, mmpose_cfg, anno_cfg, writer_cfg = None, ):
         # self.action_space = spaces.Discrete(5) # 0, 1, 2，3，4: 不动，上下左右
         # self.observation_space = spaces.Box(np.array([-self.L, -self.L]), np.array([self.L, self.L]))
         self.state = None
-        self.fish_detector = FishDetector(
-            detector_config_dict.get('detect_type'),
-            detector_config_dict.get('my_pose_cfg'),
-            detector_config_dict.get('my_pose_weights'),
-            detector_config_dict.get('my_detect_cfg'),
-            detector_config_dict.get('my_detect_weights'),
-            detector_config_dict.get('my_kpt_thr'),
-            detector_config_dict.get('my_real_num'),
-            detector_config_dict.get('my_draw_flag'),
-            detector_config_dict.get('my_save_flag'),
-            detector_config_dict.get('input_vidoe_path'),
-            detector_config_dict.get('output_path')
-        )
+        self.fish_detector = FishDetector(capture_cfg, mmpose_cfg, anno_cfg, writer_cfg)
 
     def step(self, action):
         # assert self.action_space.contains(action), "%r (%s) invalid"%(action, type(action))
@@ -78,8 +66,30 @@ class Fish2DEnv():
     def close(self):
         return None
 
-win11_detector_config_dict = {
+anno_cfg_dict = {
+    'my_anno_flag': True,
+    'current_rect': (100, 100, 200, 200),
+    'target_x': 600,
+    'target_y': 600,
+    'drag_threshold': 5,
+    'edit_button_color': (0, 0, 255),
+    'target_button_color': (0, 0, 255),
+    'detect_button_color': (0, 0, 255),
+    'train_button_color': (0, 0, 255),
+    'win_width': 2120,
+    'win_height': 1080,
+    'control_width': 200
+}
+
+win11_capture_cfg_dict = {
     'detect_type': 'video',
+    'capture_type': 1,
+    'input_vidoe_path' : r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4",
+    # 'input_vidoe_path' : r"E:\Fish-0214\fish-0214-demo5.mp4",
+    # 'input_vidoe_path' :r"E:\Fish-0223\fish-0223-demo13.mp4",
+}
+
+win11_mmpose_cfg_dict = {
     'my_pose_cfg': r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1222.py",
     'my_pose_weights': r"E:\openmmlab\mmpose\work_dirs\fish-keypoints-1222\epoch_1200_0303_mmpose.pth.pth",
     'my_detect_cfg' : r"E:\openmmlab\mmdetection\configs\fish\fish1210-rtmdet_tiny_8xb32-300e_coco.py",
@@ -89,8 +99,14 @@ win11_detector_config_dict = {
     'my_real_num' : 1,
     'my_draw_flag' : True,
     'my_save_flag ': False,
-    'input_vidoe_path' : r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4",
-    # 'input_vidoe_path' : r"E:\Fish-0214\fish-0214-demo5.mp4",
-    # 'input_vidoe_path' :r"E:\Fish-0223\fish-0223-demo13.mp4",
+    
     'output_path' : 'opencv_demo.mp4'
+}
+
+win11_save_cfg_dict = {
+    'save_frame_flag': True,
+    'save_frame_path': 'opencv_demo.mp4',
+    'save_json_flag': True,
+    'save_json_path': 'opencv_demo.json',
+    
 }

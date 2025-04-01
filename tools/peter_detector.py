@@ -3,54 +3,209 @@ import numpy as np
 import cv2
 import json
 
+'''
+detect_type, 
+capture_num,
+input_vidoe_path, 
+
+---
+
+save_frame_flag,
+save_json_flag
+frame_output_path = None
+json_output_path = None
+
+---
+
+my_anno_flag,
+current_rect
+initial_target_x
+initial_target_y
+drag_threshold
+edit_button_color
+target_button_color
+detect_button_color
+train_button_color
+win_width
+win_height
+control_width
+
+---
+
+my_pose_cfg, 
+my_pose_weights, 
+my_detect_cfg, 
+my_detect_weights, 
+my_kpt_thr, 
+my_real_num, 
+my_device
+'''
+
+
 class FishDetector():
-    def __init__(self,detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag,input_vidoe_path = None, output_path = None):
-        # 初始化 VideoCapture 对象
-        self.detect_type = detect_type
+    def __init__(self,capture_cfg, mmpose_cfg, writer_cfg = None, anno_cfg = None):
+
+        # Step 1: Initialize VideoCapture object
+        if capture_cfg is None:
+            print("Please provide the capture configuration")
+            exit()
+        self.detect_type = capture_cfg.get('detect_type')
         if self.detect_type == 'camera':
-            self.cap = cv2.VideoCapture(1)
+            self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
             if not self.cap.isOpened():
-                print("无法打开摄像头")
+                print("Failed to open camera!")
                 exit()
         elif self.detect_type == 'video':
-            self.cap = cv2.VideoCapture(input_vidoe_path)
+            self.cap = cv2.VideoCapture(capture_cfg.get('input_vidoe_path'))
             if not self.cap.isOpened():
-                print("无法打开视频文件")
+                print("Failed to open video!")
                 exit()
+
         
-        #初始化保存参数
-        self.save_flag = my_save_flag
-        if self.save_flag:
-            # 初始化 VideoWriter 对象
-            self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编码器
-            self.out = cv2.VideoWriter(output_path,self.fourcc,self.fps,(self.width,self.height))
+        
+        # Step 2: Initialize VideoWriter object
+        if writer_cfg is not None:
+            if writer_cfg.get('save_frame_flag') == False:
+                print("Warning: Save flag is False, no video will be saved")
+            if writer_cfg.get('output_path') is None:
+                print("Warning: Output path is None, no video will be saved")
+                self.save_frame_flag = False
+            if writer_cfg.get('save_frame_flag') == True and writer_cfg.get('output_path') is not None:
+                self.save_frame_flag = writer_cfg.get('save_frame_flag')
+                self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+                self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编码器
+                self.out = cv2.VideoWriter(writer_cfg.get('output_path'),self.fourcc,self.fps,(self.width,self.height))
 
-        # 设置显示窗口的名称和属性
-        self.window_name = 'Video'
-        cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)  # 允许调整窗口大小
-        self.frame = None
+            if writer_cfg.get('save_json_flag') == False:
+                print("Warning: Save json flag is False, no json file will be saved")
+            if writer_cfg.get('json_output_path') is None:
+                print("Warning: Json output path is None, no json file will be saved")
+                self.save_json_flag = False
+            if writer_cfg.get('save_json_flag') == True and writer_cfg.get('json_output_path') is not None:
+                self.save_json_flag = writer_cfg.get('save_json_flag')
+                self.json_output_path = writer_cfg.get('json_output_path')
+        else:
+            print("Warning: Writer configuration is None, no video and json file will be saved")
+            self.save_frame_flag = False
+            self.save_json_flag = False
 
+        
+        # Step 3: Initialize annotation object
+        if anno_cfg is not None:
+            if anno_cfg.get('my_anno_flag') == False:
+                print("Warning: Annotation flag is False, no annotation will be displayed")
 
-        #初始化检测参数
-        self.kpt_thr = my_kpt_thr
+            if anno_cfg.get('my_anno_flag') == True:
+
+                self.current_rect = anno_cfg.get('current_rect')
+                self.target_x = anno_cfg.get('target_x')
+                self.target_y = anno_cfg.get('target_y')
+                self.drag_threshold = anno_cfg.get('drag_threshold')
+                self.edit_button_color = anno_cfg.get('edit_button_color')
+                self.target_button_color = anno_cfg.get('target_button_color')
+                self.detect_button_color = anno_cfg.get('detect_button_color')
+                self.train_button_color = anno_cfg.get('train_button_color')
+
+                self.win_width = anno_cfg.get('win_width')
+                self.win_height = anno_cfg.get('win_height')
+                self.control_width = anno_cfg.get('control_width')
+
+                self.dargging = False
+                self.selected_corner = None
+                self.edit_rect_mode = False
+                self.set_target_mode = False
+                self.train_flag = False
+                self.detect_flag = False
+
+                self.window_name = 'Frame'
+                cv2.namedWindow(self.window_name)
+                cv2.setMouseCallback(self.window_name, self.mouse_callback)
+        else:
+            print("Warning: Annotation configuration is None, no annotation will be displayed")
+            self.my_anno_flag = False
+
+        # Step 4: Initialize MMPoseInferencer object
+        if mmpose_cfg is None:
+            print("Please provide the mmpose configuration")
+            exit()
+
+        self.kpt_thr = mmpose_cfg.get('my_kpt_thr')
         self.inferencer = MMPoseInferencer(
-            pose2d=my_pose_cfg,
-            pose2d_weights=my_pose_weights,
+            pose2d=mmpose_cfg.get('my_pose_cfg'),
+            pose2d_weights=mmpose_cfg.get('my_pose_weights'),
             det_cat_ids=[0],
-            det_model=my_detect_cfg,
-            det_weights=my_detect_weights,
-            device='cuda:0'
+            det_model=mmpose_cfg.get('my_detect_cfg'),
+            det_weights=mmpose_cfg.get('my_detect_weights'),
+            device=mmpose_cfg.get('my_device')
         )
 
-        self.draw_flag = my_draw_flag
-        self.real_num = my_real_num
+        self.real_num = mmpose_cfg.get('my_real_num')
+
         self.key_points = []
         self.frame_stamps= []
         self.keypoint_stamp = {}
+        self.frame = None
 
+    def mouse_callback(self, event, x, y, flags, param):
+
+        if x < (self.win_width - self.control_width):
+
+            if self.edit_mode:
+                x1, y1, x2, y2 = self.current_rect
+                if event == cv2.EVENT_LBUTTONDOWN:
+
+                    dist_to_tl = (x - x1)**2 + (y - y1)**2
+                    dist_to_br = (x - x2)**2 + (y - y2)**2
+
+                    if dist_to_tl < (self.drag_threshold*2)**2:
+                        self.selected_corner = 1
+                        self.dragging = not self.dragging
+                        print(f"Top-left corner {'selected' if self.dragging else 'released'}")
+                    elif dist_to_br < (self.drag_threshold*2)**2:
+                        self.selected_corner = 2
+                        self.dragging = not self.dragging
+                        print(f"Bottom-right corner {'selected' if self.dragging else 'released'}")
+
+                elif event == cv2.EVENT_MOUSEMOVE and self.dragging:
+                    if self.selected_corner == 1:
+                        self.current_rect = (x, y, x2, y2)
+                    elif self.selected_corner == 2:
+                        self.current_rect = (x1, y1, x, y)
+
+            if self.set_target_mode and event == cv2.EVENT_LBUTTONDOWN:
+                dist_to_traget = (x - self.target_x)**2 + (y - self.target_y)**2
+                if dist_to_traget < (self.drag_threshold*2)**2:
+                    self.dragging = not self.dragging
+                    print(f"Target point {'selected' if self.dragging else'released'}")
+                elif self.dragging:
+                    self.target_x, self.target_y = x, y
+                    print(f"Target point moved to ({self.target_x}, {self.target_y})")
+
+        else:
+            if event == cv2.EVENT_LBUTTONDOWN:
+                # 编辑按钮区域 (10,10)-(110,60)
+                if 10 <= x-(self.win_width-self.control_width) <= 110 and 10 <= y <= 60:
+                    self.edit_mode = not self.edit_mode
+                    self.edit_button_color = (0, 255, 0) if self.edit_mode else (0, 0, 255)
+                    print(f"Edit mode: {'ON' if self.edit_mode else 'OFF'}")
+                # 目标按钮区域 (10,70)-(110,120)
+                if 10 <= x-(self.win_width-self.control_width) <= 110 and 70 <= y <= 120:
+                    self.set_target_mode = not self.set_target_mode
+                    self.target_button_color = (0, 255, 0) if self.set_target_mode else (0, 0, 255)
+                    print(f"Target mode: {'ON' if self.set_target_mode else 'OFF'}")
+                # 检测按钮区域 (10,130)-(110,180)
+                if 10 <= x-(self.win_width-self.control_width) <= 110 and 130 <= y <= 180:
+                    self.detect_flag = not self.detect_flag
+                    self.detect_button_color = (0, 255, 0) if self.detect_flag else (0, 0, 255)
+                    print(f"Detect mode: {'ON' if self.detect_flag else 'OFF'}")    
+                # 训练按钮区域 (10,190)-(110,240)   
+                if 10 <= x-(self.win_width-self.control_width) <= 110 and 190 <= y <= 240:
+                    self.train_flag = not self.train_flag
+                    self.train_button_color = (0, 255, 0) if self.train_flag else (0, 0, 255)
+                    print(f"Train mode: {'ON' if self.train_flag else 'OFF'}")
+        
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
         for result in result_generator:
@@ -121,28 +276,52 @@ class FishDetector():
             # 读取视频的每一帧
             ret, ori_frame = self.cap.read()
             if not ret:
-                print("无法读取帧 (视频结束?). Exiting ...")
+                print("No video streaming. Exiting ...")
                 break
-
-            # 调整帧的大小
+            
             self.frame = cv2.resize(ori_frame, (1920, 1080))
-            # 进行检测
-            self.detect_in_frame()
-            # 进行绘制
-            if self.draw_flag:
+
+            if self.detect_flag:
+                self.detect_in_frame()
+                # 进行绘制
                 self.draw_in_frame()
+
+            # Resize video frame
+            if self.my_anno_flag:
+                video_frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
+                # Create composite image
+                combined = np.zeros((self.win_height, self.win_width, 3), dtype=np.uint8)
+                combined[:, :self.win_width-self.control_width] = video_frame  # Left video area
+                # Right control panel
+                controls = np.zeros((self.win_height, self.control_width, 3), dtype=np.uint8)
+                cv2.rectangle(controls, (10,10), (110,60), self.edit_button_color, -1)
+                cv2.putText(controls, 'EDIT', (20,45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                cv2.rectangle(controls, (10,70), (110,120), self.target_button_color, -1)
+                cv2.putText(controls, 'Target', (20,105), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                cv2.rectangle(controls, (10,130), (110,180), self.detect_button_color, -1)
+                cv2.putText(controls, 'Detect', (20,165), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                cv2.rectangle(controls, (10,190), (110,240), self.train_button_color, -1)
+                cv2.putText(controls, 'Train', (20,225), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+                combined[:, self.win_width-self.control_width:] = controls
+
+                # Draw interactive rectangle
+                x1, y1, x2, y2 = self.current_rect
+                cv2.rectangle(combined, 
+                            (min(x1,x2), min(y1,y2)),
+                            (max(x1,x2), max(y1,y2)),
+                            (0,255,0), 2)
+                cv2.circle(combined, (x1, y1), 8, (255,0,0), -1)
+                cv2.circle(combined, (x2, y2), 8, (255,0,0), -1)
+                cv2.circle(combined, (self.target_x, self.target_y), 8, (0,0,255), -1)
+            
             # 显示帧
             cv2.imshow(self.window_name, self.frame)
             cv2.waitKey(1)
-            # 更新frame_stamps
-            self.update_frame_stamps()
-            # 重置key_points
-            self.reset_key_points()
-
-            # 写入处理后的帧到输出视频文件
-            if self.save_flag:
+            if self.save_frame_flag:
                 self.out.write(self.frame)
-
+            if self.save_json_flag:
+                self.update_frame_stamps()
+            self.reset_key_points()
             if self.detect_type == 'camera':
                 # 按 'q' 键退出
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -150,12 +329,13 @@ class FishDetector():
 
         # 释放视频捕获对象并关闭所有窗口
         self.cap.release()
-        if self.save_flag:
+        if self.save_frame_flag:
             self.out.release()
-        cv2.destroyAllWindows()
+        
+        if self.save_json_flag:
+            self.export_frame_stamps()
 
-        # 导出frame_stamps
-        self.export_frame_stamps()
+        cv2.destroyAllWindows()
 
 class Visualizer():
     def __init__(self, file_path,file_type):
