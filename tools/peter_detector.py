@@ -43,7 +43,7 @@ my_device
 
 
 class FishDetector():
-    def __init__(self,capture_cfg, mmpose_cfg, writer_cfg = None, anno_cfg = None):
+    def __init__(self,capture_cfg, mmpose_cfg, anno_cfg = None, writer_cfg = None):
 
         # Step 1: Initialize VideoCapture object
         if capture_cfg is None:
@@ -60,6 +60,7 @@ class FishDetector():
             if not self.cap.isOpened():
                 print("Failed to open video!")
                 exit()
+        print('VideoCapture object is initialized!')
 
         
         
@@ -98,6 +99,7 @@ class FishDetector():
                 print("Warning: Annotation flag is False, no annotation will be displayed")
 
             if anno_cfg.get('my_anno_flag') == True:
+                self.my_anno_flag = True
 
                 self.current_rect = anno_cfg.get('current_rect')
                 self.target_x = anno_cfg.get('target_x')
@@ -120,8 +122,9 @@ class FishDetector():
                 self.detect_flag = False
 
                 self.window_name = 'Frame'
-                cv2.namedWindow(self.window_name)
+                cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
                 cv2.setMouseCallback(self.window_name, self.mouse_callback)
+                print('Annotation object is initialized!')
         else:
             print("Warning: Annotation configuration is None, no annotation will be displayed")
             self.my_anno_flag = False
@@ -148,11 +151,13 @@ class FishDetector():
         self.keypoint_stamp = {}
         self.frame = None
 
+        print('MMPoseInferencer object is initialized!')
+
     def mouse_callback(self, event, x, y, flags, param):
 
         if x < (self.win_width - self.control_width):
 
-            if self.edit_mode:
+            if self.edit_rect_mode:
                 x1, y1, x2, y2 = self.current_rect
                 if event == cv2.EVENT_LBUTTONDOWN:
 
@@ -187,9 +192,9 @@ class FishDetector():
             if event == cv2.EVENT_LBUTTONDOWN:
                 # 编辑按钮区域 (10,10)-(110,60)
                 if 10 <= x-(self.win_width-self.control_width) <= 110 and 10 <= y <= 60:
-                    self.edit_mode = not self.edit_mode
-                    self.edit_button_color = (0, 255, 0) if self.edit_mode else (0, 0, 255)
-                    print(f"Edit mode: {'ON' if self.edit_mode else 'OFF'}")
+                    self.edit_rect_mode = not self.edit_rect_mode
+                    self.edit_button_color = (0, 255, 0) if self.edit_rect_mode else (0, 0, 255)
+                    print(f"Edit mode: {'ON' if self.edit_rect_mode else 'OFF'}")
                 # 目标按钮区域 (10,70)-(110,120)
                 if 10 <= x-(self.win_width-self.control_width) <= 110 and 70 <= y <= 120:
                     self.set_target_mode = not self.set_target_mode
@@ -288,10 +293,11 @@ class FishDetector():
 
             # Resize video frame
             if self.my_anno_flag:
-                video_frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
+                print('here!')
+                self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
                 # Create composite image
                 combined = np.zeros((self.win_height, self.win_width, 3), dtype=np.uint8)
-                combined[:, :self.win_width-self.control_width] = video_frame  # Left video area
+                combined[:, :self.win_width-self.control_width] = self.frame  # Left video area
                 # Right control panel
                 controls = np.zeros((self.win_height, self.control_width, 3), dtype=np.uint8)
                 cv2.rectangle(controls, (10,10), (110,60), self.edit_button_color, -1)
@@ -315,7 +321,7 @@ class FishDetector():
                 cv2.circle(combined, (self.target_x, self.target_y), 8, (0,0,255), -1)
             
             # 显示帧
-            cv2.imshow(self.window_name, self.frame)
+            cv2.imshow(self.window_name, combined)
             cv2.waitKey(1)
             if self.save_frame_flag:
                 self.out.write(self.frame)
