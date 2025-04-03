@@ -114,7 +114,7 @@ class FishDetector():
                 self.win_height = anno_cfg.get('win_height')
                 self.control_width = anno_cfg.get('control_width')
 
-                self.dargging = False
+                self.dragging = False
                 self.selected_corner = None
                 self.edit_rect_mode = False
                 self.set_target_mode = False
