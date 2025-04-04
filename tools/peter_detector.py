@@ -150,6 +150,12 @@ class FishDetector():
         self.frame_stamps= []
         self.keypoint_stamp = {}
         self.frame = None
+        self.head_pos = None
+        self.body_pos = None
+        self.joint_pos = None
+        self.tail_pos = None
+
+
 
         print('MMPoseInferencer object is initialized!')
 
@@ -217,8 +223,81 @@ class FishDetector():
             predictions = result['predictions'][0]
             self.key_points.append(predictions.pred_instances.keypoints)
 
+    def detect_a_fish(self):
+        result_generator = self.inferencer(self.frame,self.kpt_thr)
+        single_result = next(result_generator)
+        predictions = single_result['predictions'][0]
+        key_points = predictions.pred_instances.keypoints
+        self.head_pos = tuple(map(int, key_points[0][0]))
+        self.body_pos = tuple(map(int, key_points[0][1]))
+        self.joint_pos = tuple(map(int, key_points[0][2]))
+        self.tail_pos = tuple(map(int, key_points[0][3]))
 
-    def draw_in_frame(self):
+        # self.head_pos = key_points[0][0]
+        # self.body_pos = key_points[0][1]
+        # self.joint_pos = key_points[0][2]
+        # self.tail_pos = key_points[0][3]
+
+
+
+    def draw_a_fish(self):
+        # # 绘制头部关键点
+        # cv2.circle(self.frame, tuple(map(int, self.head_pos)), 5, (0, 255, 0), -1)
+        # # 绘制身体关键点
+        # cv2.circle(self.frame, tuple(map(int, self.body_pos)), 5, (0, 255, 0), -1)
+        # # 绘制关节关键点
+        # cv2.circle(self.frame, tuple(map(int, self.joint_pos)), 5, (0, 255, 0), -1)
+        # # 绘制尾部关键点
+        # cv2.circle(self.frame, tuple(map(int, self.tail_pos)), 5, (0, 0, 255), -1)
+        # # 用线段连接关键点
+        # cv2.line(self.frame, tuple(map(int, self.head_pos)), tuple(map(int, self.body_pos)), (255, 0, 0), 2)
+        # cv2.line(self.frame, tuple(map(int, self.body_pos)), tuple(map(int, self.joint_pos)), (255, 0, 0), 2)
+        # cv2.line(self.frame, tuple(map(int, self.joint_pos)), tuple(map(int, self.tail_pos)), (255, 0, 0), 2)
+        # 绘制头部关键点
+        cv2.circle(self.frame, self.head_pos, 5, (0, 255, 0), -1)
+        # 绘制身体关键点
+        cv2.circle(self.frame, self.body_pos, 5, (0, 255, 0), -1)
+        # 绘制关节关键点
+        cv2.circle(self.frame, self.joint_pos, 5, (0, 255, 0), -1)
+        # 绘制尾部关键点
+        cv2.circle(self.frame, self.tail_pos, 5, (0, 0, 255), -1)
+        # 用线段连接关键点
+        cv2.line(self.frame, self.head_pos, self.body_pos, (255, 0, 0), 2)
+        cv2.line(self.frame, self.body_pos, self.joint_pos, (255, 0, 0), 2)
+        cv2.line(self.frame, self.joint_pos, self.tail_pos, (255, 0, 0), 2)
+
+
+    def display_annotation(self):
+        self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
+        # Create composite image
+        combined = np.zeros((self.win_height, self.win_width, 3), dtype=np.uint8)
+        combined[:, :self.win_width-self.control_width] = self.frame  # Left video area
+        # Right control panel
+        controls = np.zeros((self.win_height, self.control_width, 3), dtype=np.uint8)
+        cv2.rectangle(controls, (10,10), (110,60), self.edit_button_color, -1)
+        cv2.putText(controls, 'EDIT', (20,45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        cv2.rectangle(controls, (10,70), (110,120), self.target_button_color, -1)
+        cv2.putText(controls, 'Target', (20,105), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        cv2.rectangle(controls, (10,130), (110,180), self.detect_button_color, -1)
+        cv2.putText(controls, 'Detect', (20,165), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        cv2.rectangle(controls, (10,190), (110,240), self.train_button_color, -1)
+        cv2.putText(controls, 'Train', (20,225), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        combined[:, self.win_width-self.control_width:] = controls
+
+        # Draw interactive rectangle
+        x1, y1, x2, y2 = self.current_rect
+        cv2.rectangle(combined, 
+                    (min(x1,x2), min(y1,y2)),
+                    (max(x1,x2), max(y1,y2)),
+                    (0,255,0), 2)
+        cv2.circle(combined, (x1, y1), 8, (255,0,0), -1)
+        cv2.circle(combined, (x2, y2), 8, (255,0,0), -1)
+        cv2.circle(combined, (self.target_x, self.target_y), 8, (0,0,255), -1)
+
+        self.frame = combined
+            
+
+    def draw_all_in_frame(self):
         # 绘制关键点和线段
         if len(self.key_points) == self.real_num:
             for fish in self.key_points:
@@ -258,7 +337,7 @@ class FishDetector():
                 cv2.line(self.frame, head, body, (255, 0, 0), 2)
                 cv2.line(self.frame, body, joint, (255, 0, 0), 2)
                 cv2.line(self.frame, joint, tail, (255, 0, 0), 2)
-
+  
     def reset_key_points(self):
         self.key_points = []
         self.keypoint_stamp = {}
@@ -275,7 +354,59 @@ class FishDetector():
         with open('fish-1222-demo19.json', 'w') as f:
             json.dump(data, f, indent=4)
 
+    def get_distance(self):
+        ''' get the distance between the head and the target point
+        this operation is only valid when there is only one fish in the frame
+
+        '''
+        distance = np.sqrt((self.head_pos[0] - self.target_x)**2 + (self.head_pos[1] - self.target_y)**2)
+        return distance
+
+    def get_angle(self):
+        ''' get the angle `theta`
+        `theta` is the angle between `v` and `p`
+		`v` : vector formed by connecting point `head` and point `body`
+		`p` : vector formed by connecting point `head` and target `p`
+
+        this operation is only valid when there is only one fish in the frame
+        '''
+        v = np.array([self.body_pos[0] - self.head_pos[0], self.body_pos[1] - self.head_pos[1]])
+        p = np.array([self.target_x - self.head_pos[0], self.target_y - self.head_pos[1]])
+        cos_theta = np.dot(v, p) / (np.linalg.norm(v) * np.linalg.norm(p))
+        theta = np.arccos(cos_theta)
+        return theta
+
+    def is_torch_rect(self):
+        '''
+        check if all the keypoints are in the rect
+        '''
+        x1, y1, x2, y2 = self.current_rect
+        head = self.head_pos
+        body = self.body_pos
+        joint = self.joint_pos
+        tail = self.tail_pos
+        if x1 <= head[0] <= x2 and y1 <= head[1] <= y2 and \
+            x1 <= body[0] <= x2 and y1 <= body[1] <= y2 and \
+            x1 <= joint[0] <= x2 and y1 <= joint[1] <= y2 and \
+            x1 <= tail[0] <= x2 and y1 <= tail[1] <= y2:
+            return False
+        else:
+            return True
+    
+    def get_state(self, start_point = None):
+        '''
+        get the state of the fish 
+        '''
+        if start_point is None:
+           return self.head_pos, self.body_pos, self.joint_pos, self.tail_pos
+        else:
+            return (self.head_pos[0] - start_point[0], self.head_pos[1] - start_point[1]), \
+                (self.body_pos[0] - start_point[0], self.body_pos[1] - start_point[1]), \
+                (self.joint_pos[0] - start_point[0], self.joint_pos[1] - start_point[1]), \
+                (self.tail_pos[0] - start_point[0], self.tail_pos[1] - start_point[1])
         
+
+
     def minimun_pipeline(self):
         while True:
             # 读取视频的每一帧
@@ -293,35 +424,10 @@ class FishDetector():
 
             # Resize video frame
             if self.my_anno_flag:
-                print('here!')
-                self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
-                # Create composite image
-                combined = np.zeros((self.win_height, self.win_width, 3), dtype=np.uint8)
-                combined[:, :self.win_width-self.control_width] = self.frame  # Left video area
-                # Right control panel
-                controls = np.zeros((self.win_height, self.control_width, 3), dtype=np.uint8)
-                cv2.rectangle(controls, (10,10), (110,60), self.edit_button_color, -1)
-                cv2.putText(controls, 'EDIT', (20,45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-                cv2.rectangle(controls, (10,70), (110,120), self.target_button_color, -1)
-                cv2.putText(controls, 'Target', (20,105), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-                cv2.rectangle(controls, (10,130), (110,180), self.detect_button_color, -1)
-                cv2.putText(controls, 'Detect', (20,165), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-                cv2.rectangle(controls, (10,190), (110,240), self.train_button_color, -1)
-                cv2.putText(controls, 'Train', (20,225), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-                combined[:, self.win_width-self.control_width:] = controls
-
-                # Draw interactive rectangle
-                x1, y1, x2, y2 = self.current_rect
-                cv2.rectangle(combined, 
-                            (min(x1,x2), min(y1,y2)),
-                            (max(x1,x2), max(y1,y2)),
-                            (0,255,0), 2)
-                cv2.circle(combined, (x1, y1), 8, (255,0,0), -1)
-                cv2.circle(combined, (x2, y2), 8, (255,0,0), -1)
-                cv2.circle(combined, (self.target_x, self.target_y), 8, (0,0,255), -1)
+                self.display_annotation()
             
             # 显示帧
-            cv2.imshow(self.window_name, combined)
+            cv2.imshow(self.window_name, self.frame)
             cv2.waitKey(1)
             if self.save_frame_flag:
                 self.out.write(self.frame)
