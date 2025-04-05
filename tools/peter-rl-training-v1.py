@@ -23,6 +23,7 @@ class Fish2DEnv():
         self.state = None
         self.fish_detector = FishDetector(capture_cfg, mmpose_cfg, anno_cfg, writer_cfg)
         self.reach_threshold = 0.05
+        self.start_point = None
 
     def step(self, action):
         '''
@@ -49,7 +50,7 @@ class Fish2DEnv():
         return self.fish_detector.get_state(), reward, done, {}
     
     def reset(self):
-        self.state = np.ceil(np.random.rand(2)*2*self.L)-self.L
+        self.start_point = self.fish_detector.get_start_point()
         self.counts = 0
         return self.state
         

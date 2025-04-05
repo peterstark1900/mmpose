@@ -405,7 +405,11 @@ class FishDetector():
                 (self.joint_pos[0] - start_point[0], self.joint_pos[1] - start_point[1]), \
                 (self.tail_pos[0] - start_point[0], self.tail_pos[1] - start_point[1])
         
-
+    def get_start_point(self):
+        self.reset_key_points()
+        self.detect_a_fish()
+        return self.head_pos
+    
 
     def minimun_pipeline(self):
         while True:
