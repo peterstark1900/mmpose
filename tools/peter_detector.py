@@ -238,35 +238,6 @@ class FishDetector():
         # self.joint_pos = key_points[0][2]
         # self.tail_pos = key_points[0][3]
 
-
-
-    def draw_a_fish(self):
-        # # 绘制头部关键点
-        # cv2.circle(self.frame, tuple(map(int, self.head_pos)), 5, (0, 255, 0), -1)
-        # # 绘制身体关键点
-        # cv2.circle(self.frame, tuple(map(int, self.body_pos)), 5, (0, 255, 0), -1)
-        # # 绘制关节关键点
-        # cv2.circle(self.frame, tuple(map(int, self.joint_pos)), 5, (0, 255, 0), -1)
-        # # 绘制尾部关键点
-        # cv2.circle(self.frame, tuple(map(int, self.tail_pos)), 5, (0, 0, 255), -1)
-        # # 用线段连接关键点
-        # cv2.line(self.frame, tuple(map(int, self.head_pos)), tuple(map(int, self.body_pos)), (255, 0, 0), 2)
-        # cv2.line(self.frame, tuple(map(int, self.body_pos)), tuple(map(int, self.joint_pos)), (255, 0, 0), 2)
-        # cv2.line(self.frame, tuple(map(int, self.joint_pos)), tuple(map(int, self.tail_pos)), (255, 0, 0), 2)
-        # 绘制头部关键点
-        cv2.circle(self.frame, self.head_pos, 5, (0, 255, 0), -1)
-        # 绘制身体关键点
-        cv2.circle(self.frame, self.body_pos, 5, (0, 255, 0), -1)
-        # 绘制关节关键点
-        cv2.circle(self.frame, self.joint_pos, 5, (0, 255, 0), -1)
-        # 绘制尾部关键点
-        cv2.circle(self.frame, self.tail_pos, 5, (0, 0, 255), -1)
-        # 用线段连接关键点
-        cv2.line(self.frame, self.head_pos, self.body_pos, (255, 0, 0), 2)
-        cv2.line(self.frame, self.body_pos, self.joint_pos, (255, 0, 0), 2)
-        cv2.line(self.frame, self.joint_pos, self.tail_pos, (255, 0, 0), 2)
-
-
     def display_annotation(self):
         self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
         # Create composite image
@@ -338,6 +309,39 @@ class FishDetector():
                 cv2.line(self.frame, body, joint, (255, 0, 0), 2)
                 cv2.line(self.frame, joint, tail, (255, 0, 0), 2)
   
+    def draw_a_fish_in_frame(self):
+        # # 绘制头部关键点
+        # cv2.circle(self.frame, tuple(map(int, self.head_pos)), 5, (0, 255, 0), -1)
+        # # 绘制身体关键点
+        # cv2.circle(self.frame, tuple(map(int, self.body_pos)), 5, (0, 255, 0), -1)
+        # # 绘制关节关键点
+        # cv2.circle(self.frame, tuple(map(int, self.joint_pos)), 5, (0, 255, 0), -1)
+        # # 绘制尾部关键点
+        # cv2.circle(self.frame, tuple(map(int, self.tail_pos)), 5, (0, 0, 255), -1)
+        # # 用线段连接关键点
+        # cv2.line(self.frame, tuple(map(int, self.head_pos)), tuple(map(int, self.body_pos)), (255, 0, 0), 2)
+        # cv2.line(self.frame, tuple(map(int, self.body_pos)), tuple(map(int, self.joint_pos)), (255, 0, 0), 2)
+        # cv2.line(self.frame, tuple(map(int, self.joint_pos)), tuple(map(int, self.tail_pos)), (255, 0, 0), 2)
+        # 绘制头部关键点
+        cv2.circle(self.frame, self.head_pos, 5, (0, 255, 0), -1)
+        # 绘制身体关键点
+        cv2.circle(self.frame, self.body_pos, 5, (0, 255, 0), -1)
+        # 绘制关节关键点
+        cv2.circle(self.frame, self.joint_pos, 5, (0, 255, 0), -1)
+        # 绘制尾部关键点
+        cv2.circle(self.frame, self.tail_pos, 5, (0, 0, 255), -1)
+        # 用线段连接关键点
+        cv2.line(self.frame, self.head_pos, self.body_pos, (255, 0, 0), 2)
+        cv2.line(self.frame, self.body_pos, self.joint_pos, (255, 0, 0), 2)
+        cv2.line(self.frame, self.joint_pos, self.tail_pos, (255, 0, 0), 2)
+
+        self.keypoint_stamp = {
+                "head": self.head_pos,
+                "body": self.body_pos,
+                "joint": self.joint_pos,
+                "tail": self.tail_pos
+                }
+
     def reset_key_points(self):
         self.key_points = []
         self.keypoint_stamp = {}
@@ -346,12 +350,21 @@ class FishDetector():
         self.frame_stamps.append(self.keypoint_stamp)
 
     def export_frame_stamps(self):
-        info = {'total_frames': len(self.frame_stamps)}
+        if self.my_anno_flag == False:
+            info = {'total_frames': len(self.frame_stamps)}
+        else:
+            info = {'total_frames': len(self.frame_stamps),
+                    'current_rect': self.current_rect,
+                    'target_x': self.target_x,
+                    'target_y': self.target_y,
+                    'drag_threshold': self.drag_threshold
+                    }
+            
         data = {
             "frame_stamps": self.frame_stamps,
             "info": info
         }
-        with open('fish-1222-demo19.json', 'w') as f:
+        with open(self.json_output_path, 'w') as f:
             json.dump(data, f, indent=4)
 
     def get_distance(self):
@@ -452,6 +465,46 @@ class FishDetector():
             self.export_frame_stamps()
 
         cv2.destroyAllWindows()
+
+    def a_fish_pipeline(self):
+        while True:
+            # 读取视频的每一帧
+            ret, ori_frame = self.cap.read()
+            if not ret:
+                print("No video streaming. Exiting...")
+                break
+
+            self.frame = cv2.resize(ori_frame, (1920, 1080))
+            if self.detect_flag:
+                self.detect_a_fish()
+                # 进行绘制
+                self.draw_a_fish()
+            # Resize video frame
+            if self.my_anno_flag:
+                self.display_annotation()
+            # 显示帧
+            cv2.imshow(self.window_name, self.frame)
+            cv2.waitKey(1)
+            if self.save_frame_flag:
+                self.out.write(self.frame)
+            if self.save_json_flag:
+                self.update_frame_stamps()
+            self.reset_key_points()
+            if self.detect_type == 'camera':
+                # 按 'q' 键退出
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break    
+
+            # 释放视频捕获对象并关闭所有窗口
+        self.cap.release()
+        if self.save_frame_flag:
+            self.out.release()
+        
+        if self.save_json_flag:
+            self.export_frame_stamps()
+
+        cv2.destroyAllWindows()    
+
 
 class Visualizer():
     def __init__(self, file_path,file_type):
