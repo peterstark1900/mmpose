@@ -14,6 +14,8 @@ from mmpose.apis import MMPoseInferencer
 import cv2
 from peter_detector import FishDetector
 
+import time
+import datetime
 # class Fish2DEnv(gym.Env):
 class Fish2DEnv():
      
@@ -22,8 +24,16 @@ class Fish2DEnv():
         # self.observation_space = spaces.Box(np.array([-self.L, -self.L]), np.array([self.L, self.L]))
         self.state = None
         self.fish_detector = FishDetector(capture_cfg, mmpose_cfg, anno_cfg, writer_cfg)
+        if writer_cfg is not None:
+            self.save_flag = True
+        else:
+            self.save_flag = False
         self.reach_threshold = 0.05
         self.start_point = None
+        
+    def reset_timecode(self):
+        self.timecode = datetime.datetime.now.strftime("%Y-%m-%d-%H-%M-%S")
+        self.fish_detector.reset_timecode(self.timecode)
 
     def step(self, action):
         '''
@@ -60,6 +70,8 @@ class Fish2DEnv():
     
     def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size):
         return_list = []
+        if self.save_flag==True:
+            self.reset_timecode()
         for i in range(10):
             with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
                 for i_episode in range(int(num_episodes/10)):
@@ -127,8 +139,16 @@ def main():
         
     }
 
-    my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,)
-    my_detector.minimun_pipeline()
+    # my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,)
+    # my_detector.minimun_pipeline()
+    timestamp = time.time()
+    print(timestamp)
+    now = datetime.datetime.now()
+    print(now)
+    timecode = now.strftime("%Y-%m-%d-%H-%M-%S")
+    print(timecode)
+    num = 1
+    print('episode_%d'%num+'_%s'%timecode)
 
 
 
