@@ -97,7 +97,8 @@ class SerialAction:
         '''
         #默认使用第一组控制参数
         ptr = 0
-        self.fish_serial.write(f"MAM{self.action_list[ptr][1]}B{self.action_list[ptr][2]}W{self.action_list[ptr][3]}R{self.action_list[ptr][4]}E".encode())
+
+        self.fish_serial.write(f"MAM{self.action_list[ptr]['amp']}B{self.action_list[ptr]['offset']}W{self.action_list[ptr]['omega']}R{self.action_list[ptr]['ratio']}E".encode())
         time.sleep(1)
         while True:
             key = input("Please input the control key:")
@@ -114,15 +115,17 @@ class SerialAction:
                 if ptr >= (len(self.action_list)-1):
                     ptr = len(self.action_list)-1
                     print("This is the end of the action list!")
-                else:
-                    self.send(self.action_list[ptr][0],self.action_list[ptr][1],self.action_list[ptr][2],self.action_list[ptr][3],self.action_list[ptr][4])
+                self.send(self.action_list[ptr]['motion_state'],self.action_list[ptr]['amp'],self.action_list[ptr]['offset'],self.action_list[ptr]['omega'],self.action_list[ptr]['ratio'])
+                print(ptr)
+                    
             elif key == "j":
                 ptr = ptr-1
                 if ptr <= 0:
                     ptr = 0
                     print("This is the beginning of the action list!")
-                else:
-                    self.send(self.action_list[ptr][0],self.action_list[ptr][1],self.action_list[ptr][2],self.action_list[ptr][3],self.action_list[ptr][4])
+                self.send(self.action_list[ptr]['motion_state'],self.action_list[ptr]['amp'],self.action_list[ptr]['offset'],self.action_list[ptr]['omega'],self.action_list[ptr]['ratio'])
+                print(ptr)
+
             elif key == "f":
                 self.fix_route()
             elif key == "q":
@@ -132,8 +135,9 @@ class SerialAction:
         print("Serial port is closed!")
     
 
-    def send(self,my_motion_state,my_amp,my_offset,my_omega,my_ratio):
+    def send(self,my_motion_state,my_amp = None,my_offset = None,my_omega = None,my_ratio = None):
         self.motion_state = my_motion_state
+        print(self.motion_state)
         if self.motion_state == "CSE":
              self.fish_serial.write(self.motion_state.encode())
         else:
@@ -142,6 +146,7 @@ class SerialAction:
             self.omega = my_omega
             self.ratio = my_ratio
             self.fish_serial.write(f"MAM{self.amp}B{self.offset}W{self.omega}R{self.ratio}E".encode())
+            print(f"MAM{self.amp}B{self.offset}W{self.omega}R{self.ratio}E")
             time.sleep(1)   
             self.fish_serial.write(self.motion_state.encode())
 
@@ -154,9 +159,9 @@ def main():
 
     my_action_dict_1 = {
         "motion_state": "CFE",
-        "amp": 50,
+        "amp": 30,
         "offset": 15,
-        "omega": 30,
+        "omega": 10,
         "ratio": 10,
         "duration": 5,
     }
@@ -170,22 +175,26 @@ def main():
     }
     my_action_dict_3 = {
         "motion_state": "CRE",
-        "amp": 50,
+        "amp": 40,
         "offset": 15,
-        "omega": 30,
+        "omega": 20,
         "ratio": 10,
         "duration": 5,
     }
     my_action_dict_4 = {
         "motion_state": "CSE",
+        "amp": 40,
+        "offset": 15,
+        "omega": 20,
+        "ratio": 10,
         "duration": 5,
     }
     
     my_serial_config_dict = {
-        "port": "/dev/ttyUSB0",
+        "port": "COM7",
         "baudrate": 115200,
         "duration": 5,
-        "control_type": "auto",
+        "control_type": "manual",
         "action_list": [my_action_dict_1, my_action_dict_2, my_action_dict_3, my_action_dict_4],
     }
 
