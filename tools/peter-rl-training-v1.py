@@ -6,93 +6,18 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Normal
 import matplotlib.pyplot as plt
-import rl_utils
+from rl_utils import ReplayBuffer, train_off_policy_agent, train_on_policy_agent, moving_average
 
-# from gym import spaces
 
-from mmpose.apis import MMPoseInferencer
-import cv2
-from peter_detector import FishDetector
+
+from peter_env import Fish2DEnv
+from peter_RLNetwork import PolicyNet, ValueNet, ActorCritic
 
 import time
-import datetime
+
 # class Fish2DEnv(gym.Env):
-class Fish2DEnv():
-     
-    def __init__(self,capture_cfg, mmpose_cfg, anno_cfg, writer_cfg = None, ):
-        # self.action_space = spaces.Discrete(5) # 0, 1, 2，3，4: 不动，上下左右
-        # self.observation_space = spaces.Box(np.array([-self.L, -self.L]), np.array([self.L, self.L]))
-        self.state = None
-        self.fish_detector = FishDetector(capture_cfg, mmpose_cfg, anno_cfg, writer_cfg)
-        if writer_cfg is not None:
-            self.save_flag = True
-        else:
-            self.save_flag = False
-        self.reach_threshold = 0.05
-        self.start_point = None
-        
-    def reset_timecode(self):
-        self.timecode = datetime.datetime.now.strftime("%Y-%m-%d-%H-%M-%S")
-        self.fish_detector.reset_timecode(self.timecode)
 
-    def step(self, action):
-        '''
-        next_state, reward, done, _ = env.step(action)
-        '''
-
-        self.counts += 1
-
-        # check if reach target
-        if self.is_touch_rect():
-            done = True
-            reward_pos = -10
-        else:
-            target_distance = self.fish_detector.get_distance()
-            if target_distance <= self.reach_threshold:
-                done = True
-                reward_pos = 10
-            else:
-                done = False
-                reward_pos = 0
-
-        reward = reward_pos# check if out of boundary
-            
-        return self.fish_detector.get_state(), reward, done, {}
     
-    def reset(self):
-        self.start_point = self.fish_detector.get_start_point()
-        self.counts = 0
-        return self.state
-        
-        
-    def close(self):
-        return None
-    
-    def train_off_policy_agent(env, agent, num_episodes, replay_buffer, minimal_size, batch_size):
-        return_list = []
-        if self.save_flag==True:
-            self.reset_timecode()
-        for i in range(10):
-            with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
-                for i_episode in range(int(num_episodes/10)):
-                    episode_return = 0
-                    state = env.reset()
-                    done = False
-                    while not done:
-                        action = agent.take_action(state)
-                        next_state, reward, done, _ = env.step(action)
-                        replay_buffer.add(state, action, reward, next_state, done)
-                        state = next_state
-                        episode_return += reward
-                        if replay_buffer.size() > minimal_size:
-                            b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
-                            transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
-                            agent.update(transition_dict)
-                    return_list.append(episode_return)
-                    if (i_episode+1) % 10 == 0:
-                        pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
-                    pbar.update(1)
-        return return_list
 def main():
     anno_cfg_dict = {
         'my_anno_flag': True,
@@ -133,22 +58,68 @@ def main():
 
     win11_save_cfg_dict = {
         'save_frame_flag': True,
-        'save_frame_path': 'opencv_demo.mp4',
+        'save_frame_path': '/output/video',
         'save_json_flag': True,
-        'save_json_path': 'opencv_demo.json',
-        
+        'save_json_path': '/output/json', 
     }
 
+    my_serial_config_dict = {
+        "port": "/dev/ttyUSB0",
+        "baudrate": 115200,
+        "duration": 5,
+        "control_type": "auto",
+    }
+    my_reward_cfg_dict = {
+        'reach_threshold': 0.05,
+        'lambda_1': 0.1,
+        'lambda_2': 0.1,        
+    }
+
+    env = Fish2DEnv(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict, my_serial_config_dict, my_reward_cfg_dict, win11_save_cfg_dict)
+    actor_lr = 1e-3
+    critic_lr = 1e-2
+    num_episodes = 1000
+    hidden_dim = 128
+    gamma = 0.98
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
+        "cpu")
+
+    torch.manual_seed(0)
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.n
+    agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
+                        gamma, device)
+    # train_on_policy_agent(env, agent, num_episodes)
+    return_list = []
+    for i in range(10):
+        with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
+            for i_episode in range(int(num_episodes/10)):
+                episode_return = 0
+                transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
+                while env.get_detector_train_flag():
+                    print("\r Waiting for training command...",end="")
+                print("Training command received!")
+                print("start episode %d"%(i_episode))
+                state = env.reset()
+                done = False
+                while not done:
+                    action = agent.take_action(state)
+                    next_state, reward, done, _ = env.step(action)
+                    transition_dict['states'].append(state)
+                    transition_dict['actions'].append(action)
+                    transition_dict['next_states'].append(next_state)
+                    transition_dict['rewards'].append(reward)
+                    transition_dict['dones'].append(done)
+                    state = next_state
+                    episode_return += reward
+                return_list.append(episode_return)
+                agent.update(transition_dict)
+                if (i_episode+1) % 10 == 0:
+                    pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
+                pbar.update(1)
     # my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,)
     # my_detector.minimun_pipeline()
-    timestamp = time.time()
-    print(timestamp)
-    now = datetime.datetime.now()
-    print(now)
-    timecode = now.strftime("%Y-%m-%d-%H-%M-%S")
-    print(timecode)
-    num = 1
-    print('episode_%d'%num+'_%s'%timecode)
+
 
 
 

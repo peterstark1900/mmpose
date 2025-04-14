@@ -2,7 +2,7 @@ from mmpose.apis import MMPoseInferencer
 import numpy as np
 import cv2
 import json
-
+import datetime
 '''
 detect_type, 
 capture_num,
@@ -77,7 +77,9 @@ class FishDetector():
                 self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编码器
-                self.out = cv2.VideoWriter(writer_cfg.get('output_path'),self.fourcc,self.fps,(self.width,self.height))
+                self.save_video_path = writer_cfg.get('save_frame_path')+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+                self.output_video = self.save_video_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+                self.out = cv2.VideoWriter(self.output_video,self.fourcc,self.fps,(self.width,self.height))
 
             if writer_cfg.get('save_json_flag') == False:
                 print("Warning: Save json flag is False, no json file will be saved")
@@ -86,7 +88,7 @@ class FishDetector():
                 self.save_json_flag = False
             if writer_cfg.get('save_json_flag') == True and writer_cfg.get('json_output_path') is not None:
                 self.save_json_flag = writer_cfg.get('save_json_flag')
-                self.json_output_path = writer_cfg.get('json_output_path')
+                self.json_output_path = writer_cfg.get('save_json_path')
         else:
             print("Warning: Writer configuration is None, no video and json file will be saved")
             self.save_frame_flag = False
@@ -216,7 +218,8 @@ class FishDetector():
                     self.train_flag = not self.train_flag
                     self.train_button_color = (0, 255, 0) if self.train_flag else (0, 0, 255)
                     print(f"Train mode: {'ON' if self.train_flag else 'OFF'}")
-        
+    ###########################################
+    # detect and display operation   
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
         for result in result_generator:
@@ -237,7 +240,7 @@ class FishDetector():
         # self.body_pos = key_points[0][1]
         # self.joint_pos = key_points[0][2]
         # self.tail_pos = key_points[0][3]
-
+ 
     def display_annotation(self):
         self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
         # Create composite image
@@ -267,7 +270,6 @@ class FishDetector():
 
         self.frame = combined
             
-
     def draw_all_in_frame(self):
         # 绘制关键点和线段
         if len(self.key_points) == self.real_num:
@@ -346,27 +348,11 @@ class FishDetector():
         self.key_points = []
         self.keypoint_stamp = {}
     
-    def update_frame_stamps(self):
-        self.frame_stamps.append(self.keypoint_stamp)
-
-    def export_frame_stamps(self):
-        if self.my_anno_flag == False:
-            info = {'total_frames': len(self.frame_stamps)}
-        else:
-            info = {'total_frames': len(self.frame_stamps),
-                    'current_rect': self.current_rect,
-                    'target_x': self.target_x,
-                    'target_y': self.target_y,
-                    'drag_threshold': self.drag_threshold
-                    }
-            
-        data = {
-            "frame_stamps": self.frame_stamps,
-            "info": info
-        }
-        with open(self.json_output_path, 'w') as f:
-            json.dump(data, f, indent=4)
-
+    
+    #############################################################        
+    # get state
+    def get_train_flag(self):
+        return self.train_flag
     def get_distance(self):
         ''' get the distance between the head and the target point
         this operation is only valid when there is only one fish in the frame
@@ -408,7 +394,7 @@ class FishDetector():
     
     def get_state(self, start_point = None):
         '''
-        get the state of the fish 
+        get the coordinates of the fish 
         '''
         if start_point is None:
            return self.head_pos, self.body_pos, self.joint_pos, self.tail_pos
@@ -423,6 +409,32 @@ class FishDetector():
         self.detect_a_fish()
         return self.head_pos
     
+    ########################################################
+    # save operation
+    def update_frame_stamps(self):
+        self.frame_stamps.append(self.keypoint_stamp)
+    def reset_video_out(self):
+        self.output_video = self.save_video_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+        self.out = cv2.VideoWriter(self.output_video,self.fourcc,self.fps,(self.width,self.height))
+    def export_frame_stamps(self):
+        if self.my_anno_flag == False:
+            info = {'total_frames': len(self.frame_stamps)}
+        else:
+            info = {'total_frames': len(self.frame_stamps),
+                    'current_rect': self.current_rect,
+                    'target_x': self.target_x,
+                    'target_y': self.target_y,
+                    'drag_threshold': self.drag_threshold
+                    }
+            
+        data = {
+            "frame_stamps": self.frame_stamps,
+            "info": info
+        }
+        output_json_file = self.save_json_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.json'
+        with open(output_json_file, 'w') as f:
+            json.dump(data, f, indent=4)
+
 
     def minimun_pipeline(self):
         while True:
