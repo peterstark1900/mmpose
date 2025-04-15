@@ -51,7 +51,8 @@ class FishDetector():
             exit()
         self.detect_type = capture_cfg.get('detect_type')
         if self.detect_type == 'camera':
-            self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
+            # self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
+            self.cap = cv2.VideoCapture(1)
             if not self.cap.isOpened():
                 print("Failed to open camera!")
                 exit()
@@ -449,7 +450,7 @@ class FishDetector():
             if self.detect_flag:
                 self.detect_in_frame()
                 # 进行绘制
-                self.draw_in_frame()
+                self.draw_all_in_frame()
 
             # Resize video frame
             if self.my_anno_flag:
@@ -490,7 +491,7 @@ class FishDetector():
             if self.detect_flag:
                 self.detect_a_fish()
                 # 进行绘制
-                self.draw_a_fish()
+                self.draw_a_fish_in_frame()
             # Resize video frame
             if self.my_anno_flag:
                 self.display_annotation()
