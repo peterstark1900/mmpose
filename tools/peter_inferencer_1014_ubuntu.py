@@ -250,14 +250,15 @@ def peter_inferencer():
     detect_type = 'video'
     # detect_type = 'camera'
     my_pose_cfg = '/home/peter/mmpose/configs/fish_keypoints/fish-keypoints-1222.py'
-    my_pose_weights = '/home/peter/mmpose/work_dirs/fish-keypoints-1222/best_coco_AP_epoch_380.pth'
-    my_detect_cfg = '/home/peter/mmdetection/configs/fish/fish1210-rtmdet_tiny_8xb32-300e_coco.py'
-    my_detect_weights = '/home/peter/mmdetection/work_dirs/fish1210-rtmdet_tiny_8xb32-300e_coco/epoch_300.pth'
+    my_pose_weights = '/home/peter/mmpose/work_dirs/fish-keypoints-1222/epoch_1200_0303_mmpose.pth'
+    my_detect_cfg = '/home/peter/mmdetection/configs/fish/fish1222-rtmdet_tiny_8xb32-300e_coco.py'
+    my_detect_weights = '/home/peter/mmdetection/work_dirs/fish1222-rtmdet_tiny_8xb32-300e_coco/epoch_1200_0303_mmdet.pth'
     my_kpt_thr = 0.2
     my_real_num = 1
     my_draw_flag = True
-    my_save_flag = True
-    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo19.mp4'
+    my_save_flag = False
+    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo19.mp4'
+    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0414/0414-demo-new-1.mp4'
     output_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/test-output/opencv-mode-1222-demo19.mp4'
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
@@ -270,8 +271,8 @@ def peter_visualizer():
     visualizer.show_animation()
 
 def main():
-    # peter_inferencer()
-    peter_visualizer()
+    peter_inferencer()
+    # peter_visualizer()
 
 
 if __name__ == '__main__':

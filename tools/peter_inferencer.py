@@ -155,7 +155,8 @@ inferencer = MMPoseInferencer(
 # img_path = '/home/peter/mmpose/data/HumanArt/fes2024-v2.jpeg'
 
 # img_path = '/home/peter/Desktop/Fish-Dataset/Fish-0223/extract_outcome/TEST-MAM30B15W15R15E'
-img_path = '/home/peter/Desktop/Fish-Dataset/Fish-0223/original/fish-0223-demo13.mp4'
+# img_path = '/home/peter/Desktop/Fish-Dataset/Fish-0223/original/fish-0223-demo13.mp4'
+img_path = '/home/peter/Desktop/Fish-Dataset/fish-0414/0414-demo-1.mp4'
 
  
 # result_generator = inferencer(img_path, vis_out_dir='/home/peter/Desktop/Fish-Dataset/test-output-0929',kpt_thr = 0.2, draw_bbox = True,draw_heatmap = True)
