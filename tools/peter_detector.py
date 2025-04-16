@@ -57,7 +57,7 @@ class FishDetector():
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             self.cap.set(cv2.CAP_PROP_FPS, 30)
-            
+
             if not self.cap.isOpened():
                 print("Failed to open camera!")
                 exit()
@@ -397,7 +397,7 @@ class FishDetector():
         theta = np.arccos(cos_theta)
         return theta
 
-    def is_torch_rect(self):
+    def is_in_rect(self):
         '''
         check if all the keypoints are in the rect
         '''
@@ -421,10 +421,16 @@ class FishDetector():
         if start_point is None:
            return self.head_pos, self.body_pos, self.joint_pos, self.tail_pos
         else:
-            return (self.head_pos[0] - start_point[0], self.head_pos[1] - start_point[1]), \
-                (self.body_pos[0] - start_point[0], self.body_pos[1] - start_point[1]), \
-                (self.joint_pos[0] - start_point[0], self.joint_pos[1] - start_point[1]), \
-                (self.tail_pos[0] - start_point[0], self.tail_pos[1] - start_point[1])
+            # return (self.head_pos[0] - start_point[0], self.head_pos[1] - start_point[1]), \
+            #     (self.body_pos[0] - start_point[0], self.body_pos[1] - start_point[1]), \
+            #     (self.joint_pos[0] - start_point[0], self.joint_pos[1] - start_point[1]), \
+            #     (self.tail_pos[0] - start_point[0], self.tail_pos[1] - start_point[1])
+            return (
+                (int(self.head_pos[0]) - int(start_point[0]), int(self.head_pos[1]) - int(start_point[1])),
+                (int(self.body_pos[0]) - int(start_point[0]), int(self.body_pos[1]) - int(start_point[1])),
+                (int(self.joint_pos[0]) - int(start_point[0]), int(self.joint_pos[1]) - int(start_point[1])),
+                (int(self.tail_pos[0]) - int(start_point[0]), int(self.tail_pos[1]) - int(start_point[1]))
+            )
         
     def get_start_point(self):
         self.reset_key_points()

@@ -16,69 +16,77 @@ from peter_detector import FishDetector
 
 import time
 
+import threading
+
 # class Fish2DEnv(gym.Env):
 
-    
-def main():
-    anno_cfg_dict = {
-        'my_anno_flag': True,
-        'current_rect': (100, 100, 200, 200),
-        'target_x': 600,
-        'target_y': 600,
-        'drag_threshold': 5,
-        'edit_button_color': (0, 0, 255),
-        'target_button_color': (0, 0, 255),
-        'detect_button_color': (0, 0, 255),
-        'train_button_color': (0, 0, 255),
-        'win_width': 2120,
-        'win_height': 1080,
-        'control_width': 200
-    }
+def rl_train(detector):
 
-    win11_capture_cfg_dict = {
-        'detect_type': 'camera',
-        # 'capture_type': 1,
-        # 'detect_type': 'video',
-        # 'input_vidoe_path' : r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4",
-        # 'input_vidoe_path' : r"E:\Fish-0214\fish-0214-demo5.mp4",
-        # 'input_vidoe_path' :r"E:\Fish-0223\fish-0223-demo13.mp4",
-        # 'input_vidoe_path' : r"E:\fish-0414\0414-demo-4.mp4",
-        'input_vidoe_path' : r"E:\openmmlab\mmpose\opencv_demo-19-30.mp4",
-    }
+    #############################  debug region  #######################
+    i_episode = 0
+    theta_current = None
+    distance_current = None
+    theta_last = None
+    distance_last = None
+    lambda_1 = 1
+    lambda_2 = 1
+    reach_threshold = 0.05
+    change_start_point = True
+    start_point = None
+    while True:
+        while not detector.get_train_flag():
+            print("\r Waiting for training command...", end="")
+            time.sleep(0.1)
+            change_start_point = True
+        # first time
+        # if start_point is None:
+            # start_point = detector.get_state()
+        if theta_last is None:
+            theta_last = detector.get_angle()
+        if distance_last is None:
+            distance_last = detector.get_distance()
+        if theta_current is None:
+            theta_current = detector.get_angle()
+        if distance_current is None:
+            distance_current = detector.get_distance()
 
-    win11_mmpose_cfg_dict = {
-        'my_pose_cfg': r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1222.py",
-        'my_pose_weights': r"E:\openmmlab\mmpose\work_dirs\fish-keypoints-1222\epoch_1200_0303_mmpose.pth",
-        'my_detect_cfg' : r"E:\openmmlab\mmdetection\configs\fish\fish1210-rtmdet_tiny_8xb32-300e_coco.py",
-        # 'my_detect_weights' : r"C:\Users\peter\OneDrive\毕设\demo_video\epoch_300.pth",
-        'my_detect_weights' : r"E:\openmmlab\mmdetection\work_dirs\fish1222-rtmdet_tiny_8xb32-300e_coco\epoch_1200_0303_mmdet.pth",
-        'my_kpt_thr' : 0.2,
-        'my_real_num' : 1,
-        'my_draw_flag' : True,
-        'my_save_flag ': False,
+        #  loop 
+        # if change_start_point:
+        #     start_point = detector.get_state()
+        #     change_start_point = False
+
+        if detector.is_in_rect():
+            reward_pos = -10
+            done = True
+        else:
+            distance_current = detector.get_distance()
+            if distance_current <= reach_threshold:
+                reward_pos = 10
+                done = True
+            else:
+                done = False
+                reward_pos = 0
+
+            reward_appr = (distance_current - distance_last) * lambda_2
+
+            theta_current = detector.get_angle()
+            dot_theta = theta_current - theta_last
+            reward_theta = -dot_theta * lambda_1
+
+        reward = reward_pos + reward_appr + reward_theta
+
+        theta_last = theta_current
+        distance_last = distance_current
+        # detector.get_state(start_point)
+        # print("Training command received!")
+        # print("start episode %d"%(i_episode))
+        # i_episode += 1
+        # time.sleep(5)
+        # print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(detector.get_distance())+' Theta: '+str(detector.get_angle()), end="")
+
+        print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(detector.get_distance())+' Theta: '+str(detector.get_angle())+' reward: '+ str(reward), end="")
         
-        'output_path' : 'opencv_demo.mp4'
-    }
-
-    win11_save_cfg_dict = {
-        'save_frame_flag': False,
-        'save_video_path': '/video',
-        'save_json_flag': False,
-        'json_output_path': '/output/json', 
-    }
-
-    my_serial_config_dict = {
-        "port": "/dev/COM7",
-        "baudrate": 115200,
-        "duration": 5,
-        "control_type": "auto",
-    }
-    my_reward_cfg_dict = {
-        'reach_threshold': 0.05,
-        'lambda_1': 0.1,
-        'lambda_2': 0.1,        
-    }
-
+    #############################  real region  #######################
     # env = Fish2DEnv(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict, my_serial_config_dict, my_reward_cfg_dict, win11_save_cfg_dict)
     # actor_lr = 1e-3
     # critic_lr = 1e-2
@@ -121,9 +129,76 @@ def main():
     #             if (i_episode+1) % 10 == 0:
     #                 pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
     #             pbar.update(1)
+    
+def main():
+    anno_cfg_dict = {
+        'my_anno_flag': True,
+        'current_rect': (100, 100, 200, 200),
+        'target_x': 600,
+        'target_y': 600,
+        'drag_threshold': 5,
+        'edit_button_color': (0, 0, 255),
+        'target_button_color': (0, 0, 255),
+        'detect_button_color': (0, 0, 255),
+        'train_button_color': (0, 0, 255),
+        'win_width': 2120,
+        'win_height': 1080,
+        'control_width': 200,
+    }
+
+    win11_capture_cfg_dict = {
+        # 'detect_type': 'camera',
+        # 'capture_type': 1,
+        'detect_type': 'video',
+        # 'input_vidoe_path' : r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4",
+        # 'input_vidoe_path' : r"E:\Fish-0214\fish-0214-demo5.mp4",
+        # 'input_vidoe_path' :r"E:\Fish-0223\fish-0223-demo13.mp4",
+        'input_vidoe_path' : r"E:\fish-0414\0414-demo-4.mp4",
+        # 'input_vidoe_path' : r"E:\openmmlab\mmpose\opencv_demo-19-30.mp4",
+    }
+
+    win11_mmpose_cfg_dict = {
+        'my_pose_cfg': r"E:\openmmlab\mmpose\configs\fish_keypoints\fish-keypoints-1222.py",
+        'my_pose_weights': r"E:\openmmlab\mmpose\work_dirs\fish-keypoints-1222\epoch_1200_0303_mmpose.pth",
+        'my_detect_cfg' : r"E:\openmmlab\mmdetection\configs\fish\fish1210-rtmdet_tiny_8xb32-300e_coco.py",
+        # 'my_detect_weights' : r"C:\Users\peter\OneDrive\毕设\demo_video\epoch_300.pth",
+        'my_detect_weights' : r"E:\openmmlab\mmdetection\work_dirs\fish1222-rtmdet_tiny_8xb32-300e_coco\epoch_1200_0303_mmdet.pth",
+        'my_kpt_thr' : 0.2,
+        'my_real_num' : 1,
+        'my_draw_flag' : True,
+        'my_save_flag ': False,
+        
+        'output_path' : 'opencv_demo.mp4'
+    }
+
+    win11_save_cfg_dict = {
+        'save_frame_flag': False,
+        'save_video_path': '/video',
+        'save_json_flag': False,
+        'json_output_path': '/output/json', 
+    }
+
+    my_serial_config_dict = {
+        "port": "/dev/COM7",
+        "baudrate": 115200,
+        "duration": 5,
+        "control_type": "auto",
+    }
+    my_reward_cfg_dict = {
+        'reach_threshold': 0.05,
+        'lambda_1': 0.1,
+        'lambda_2': 0.1,        
+    }
+
     my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,win11_save_cfg_dict)
+    training_thread = threading.Thread(target=rl_train, args=(my_detector,))
+    training_thread.daemon = True
+    training_thread.start()
     # my_detector.minimun_pipeline()
     my_detector.a_fish_pipeline()
+    # while True:
+    #     print('\r continue training: '+str(True)+' Distance: '+str(0.1)+' Theta: '+str(0.1), end="")
+
 
 
 
