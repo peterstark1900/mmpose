@@ -238,6 +238,9 @@ class FishDetector():
         self.detect_type = detect_type
         if self.detect_type == 'camera':
             self.cap = cv2.VideoCapture(1)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+            self.cap.set(cv2.CAP_PROP_FPS, 30)
             if not self.cap.isOpened():
                 print("无法打开摄像头")
                 exit()
@@ -252,8 +255,10 @@ class FishDetector():
         if self.save_flag:
             # 初始化 VideoWriter 对象
             self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-            self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            self.width = 1920
+            self.height = 1080
             self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编码器
             self.out = cv2.VideoWriter(output_path,self.fourcc,self.fps,(self.width,self.height))
 
@@ -440,8 +445,8 @@ def peter_inferencer():
     my_detect_weights = r"E:\openmmlab\mmdetection\work_dirs\fish1222-rtmdet_tiny_8xb32-300e_coco\epoch_1200_0303_mmdet.pth"
     my_kpt_thr = 0.2
     my_real_num = 1
-    my_draw_flag = True
-    my_save_flag = False
+    my_draw_flag =  False
+    my_save_flag = True
     # input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4"
     # input_vidoe_path = r"E:\Fish-0214\fish-0214-demo5.mp4"
     # input_vidoe_path = r"E:\Fish-0223\MAM30B15W20R16E.mp4"

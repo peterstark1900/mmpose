@@ -36,13 +36,14 @@ def main():
     }
 
     win11_capture_cfg_dict = {
-        # 'detect_type': 'camera',
+        'detect_type': 'camera',
         # 'capture_type': 1,
-        'detect_type': 'video',
+        # 'detect_type': 'video',
         # 'input_vidoe_path' : r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4",
         # 'input_vidoe_path' : r"E:\Fish-0214\fish-0214-demo5.mp4",
         # 'input_vidoe_path' :r"E:\Fish-0223\fish-0223-demo13.mp4",
-        'input_vidoe_path' : r"E:\fish-0414\0414-demo-4.mp4",
+        # 'input_vidoe_path' : r"E:\fish-0414\0414-demo-4.mp4",
+        'input_vidoe_path' : r"E:\openmmlab\mmpose\opencv_demo-19-30.mp4",
     }
 
     win11_mmpose_cfg_dict = {
@@ -60,10 +61,10 @@ def main():
     }
 
     win11_save_cfg_dict = {
-        'save_frame_flag': True,
-        'save_frame_path': '/output/video',
-        'save_json_flag': True,
-        'save_json_path': '/output/json', 
+        'save_frame_flag': False,
+        'save_video_path': '/video',
+        'save_json_flag': False,
+        'json_output_path': '/output/json', 
     }
 
     my_serial_config_dict = {
@@ -120,8 +121,8 @@ def main():
     #             if (i_episode+1) % 10 == 0:
     #                 pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
     #             pbar.update(1)
-    my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,)
-    my_detector.minimun_pipeline()
+    my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,win11_save_cfg_dict)
+    # my_detector.minimun_pipeline()
     my_detector.a_fish_pipeline()
 
 

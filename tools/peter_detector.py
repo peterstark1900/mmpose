@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import json
 import datetime
+import os
 '''
 detect_type, 
 capture_num,
@@ -53,6 +54,10 @@ class FishDetector():
         if self.detect_type == 'camera':
             # self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
             self.cap = cv2.VideoCapture(1)
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+            self.cap.set(cv2.CAP_PROP_FPS, 30)
+            
             if not self.cap.isOpened():
                 print("Failed to open camera!")
                 exit()
@@ -69,27 +74,43 @@ class FishDetector():
         if writer_cfg is not None:
             if writer_cfg.get('save_frame_flag') == False:
                 print("Warning: Save flag is False, no video will be saved")
-            if writer_cfg.get('output_path') is None:
+                self.save_frame_flag = False
+            if writer_cfg.get('save_video_path') is None:
                 print("Warning: Output path is None, no video will be saved")
                 self.save_frame_flag = False
-            if writer_cfg.get('save_frame_flag') == True and writer_cfg.get('output_path') is not None:
+            if writer_cfg.get('save_frame_flag') == True and writer_cfg.get('save_video_path') is not None:
                 self.save_frame_flag = writer_cfg.get('save_frame_flag')
+                print(self.save_frame_flag)
                 self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-                self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                print(self.fps)
+                # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                self.width = 1920
+                # print(self.width)
+                # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                self.height = 1080
+                # print(self.height)
                 self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编码器
-                self.save_video_path = writer_cfg.get('save_frame_path')+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+                self.save_video_path = writer_cfg.get('save_video_path')
+                # if the output_video folder does not exist, create it
+                self.save_video_path = os.path.join(os.getcwd(),writer_cfg.get('save_video_path'))
+                if not os.path.exists(os.path.dirname(self.save_video_path)):
+                    os.makedirs(os.path.dirname(self.save_video_path))
+                    print("Output video folder created!")
                 self.output_video = self.save_video_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
                 self.out = cv2.VideoWriter(self.output_video,self.fourcc,self.fps,(self.width,self.height))
 
             if writer_cfg.get('save_json_flag') == False:
                 print("Warning: Save json flag is False, no json file will be saved")
+                self.save_json_flag = False
             if writer_cfg.get('json_output_path') is None:
                 print("Warning: Json output path is None, no json file will be saved")
                 self.save_json_flag = False
             if writer_cfg.get('save_json_flag') == True and writer_cfg.get('json_output_path') is not None:
                 self.save_json_flag = writer_cfg.get('save_json_flag')
-                self.json_output_path = writer_cfg.get('save_json_path')
+                self.json_output_path = os.path.join(os.getcwd(),writer_cfg.get('json_output_path'))
+                # if the output_json folder does not exist, create it
+                if not os.path.exists(self.json_output_path):
+                    os.makedirs(self.json_output_path)
         else:
             print("Warning: Writer configuration is None, no video and json file will be saved")
             self.save_frame_flag = False
@@ -432,8 +453,11 @@ class FishDetector():
             "frame_stamps": self.frame_stamps,
             "info": info
         }
-        output_json_file = self.save_json_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.json'
-        with open(output_json_file, 'w') as f:
+        self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.json'
+        # if the path does not exist, create it
+        if not os.path.exists(self.json_output_path):
+            os.makedirs(self.json_output_path)
+        with open(self.output_json_file, 'w') as f:
             json.dump(data, f, indent=4)
 
 
@@ -512,9 +536,11 @@ class FishDetector():
         self.cap.release()
         if self.save_frame_flag:
             self.out.release()
+            print("Video saved to: ", self.output_video)
         
         if self.save_json_flag:
             self.export_frame_stamps()
+            print("Json saved to: ", self.output_json_file)
 
         cv2.destroyAllWindows()    
 
