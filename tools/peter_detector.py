@@ -11,7 +11,7 @@ input_vidoe_path,
 
 ---
 
-save_frame_flag,
+save_video_flag,
 save_json_flag
 frame_output_path = None
 json_output_path = None
@@ -72,33 +72,32 @@ class FishDetector():
         
         # Step 2: Initialize VideoWriter object
         if writer_cfg is not None:
-            if writer_cfg.get('save_frame_flag') == False:
+            self.episode_num = None
+            # video configuration
+            if writer_cfg.get('save_video_flag') == False:
                 print("Warning: Save flag is False, no video will be saved")
-                self.save_frame_flag = False
-            if writer_cfg.get('save_video_path') is None:
+                self.save_video_flag = False
+            if writer_cfg.get('video_output_path') is None:
                 print("Warning: Output path is None, no video will be saved")
-                self.save_frame_flag = False
-            if writer_cfg.get('save_frame_flag') == True and writer_cfg.get('save_video_path') is not None:
-                self.save_frame_flag = writer_cfg.get('save_frame_flag')
-                print(self.save_frame_flag)
+                self.save_video_flag = False
+            if writer_cfg.get('save_video_flag') == True and writer_cfg.get('video_output_path') is not None:
+                self.save_video_flag = True
+                self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
                 self.fps = self.cap.get(cv2.CAP_PROP_FPS)
                 print(self.fps)
                 # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 self.width = 1920
-                # print(self.width)
                 # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                 self.height = 1080
-                # print(self.height)
-                self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编码器
-                self.save_video_path = writer_cfg.get('save_video_path')
-                # if the output_video folder does not exist, create it
-                self.save_video_path = os.path.join(os.getcwd(),writer_cfg.get('save_video_path'))
-                if not os.path.exists(os.path.dirname(self.save_video_path)):
-                    os.makedirs(os.path.dirname(self.save_video_path))
+                self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # encoder
+                self.video_output_path = writer_cfg.get('video_output_path')
+                # if the output_video_file folder does not exist, create it
+                self.video_output_path = os.path.join(os.getcwd(),writer_cfg.get('video_output_path'))
+                if not os.path.exists(os.path.dirname(self.video_output_path)):
+                    os.makedirs(os.path.dirname(self.video_output_path))
                     print("Output video folder created!")
-                self.output_video = self.save_video_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
-                self.out = cv2.VideoWriter(self.output_video,self.fourcc,self.fps,(self.width,self.height))
-
+            
+            # json configuration
             if writer_cfg.get('save_json_flag') == False:
                 print("Warning: Save json flag is False, no json file will be saved")
                 self.save_json_flag = False
@@ -111,9 +110,10 @@ class FishDetector():
                 # if the output_json folder does not exist, create it
                 if not os.path.exists(self.json_output_path):
                     os.makedirs(self.json_output_path)
+                    print("Output json folder created!")
         else:
             print("Warning: Writer configuration is None, no video and json file will be saved")
-            self.save_frame_flag = False
+            self.save_video_flag = False
             self.save_json_flag = False
 
         
@@ -133,6 +133,7 @@ class FishDetector():
                 self.target_button_color = anno_cfg.get('target_button_color')
                 self.detect_button_color = anno_cfg.get('detect_button_color')
                 self.train_button_color = anno_cfg.get('train_button_color')
+                self.exit_button_color = anno_cfg.get('exit_button_color')
 
                 self.win_width = anno_cfg.get('win_width')
                 self.win_height = anno_cfg.get('win_height')
@@ -144,6 +145,7 @@ class FishDetector():
                 self.set_target_mode = False
                 self.train_flag = False
                 self.detect_flag = False
+                self.exit_flag = False
 
                 self.window_name = 'Frame'
                 cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
@@ -240,6 +242,14 @@ class FishDetector():
                     self.train_flag = not self.train_flag
                     self.train_button_color = (0, 255, 0) if self.train_flag else (0, 0, 255)
                     print(f"Train mode: {'ON' if self.train_flag else 'OFF'}")
+                    self.detect_flag = not self.detect_flag
+                    self.detect_button_color = (0, 255, 0) if self.detect_flag else (0, 0, 255)
+                    print(f"Detect mode: {'ON' if self.detect_flag else 'OFF'}")
+                # 退出按钮区域 (10,250)-(110,300)
+                if 10 <= x-(self.win_width-self.control_width) <= 110 and 250 <= y <= 300:
+                    self.exit_flag = not self.exit_flag
+                    self.exit_button_color = (0, 0, 255) if self.exit_flag else (0, 0, 255)
+                    print(f"Exit flag: {'True' if self.exit_flag else 'False'}")
     ###########################################
     # detect and display operation   
     def detect_in_frame(self):
@@ -270,14 +280,22 @@ class FishDetector():
         combined[:, :self.win_width-self.control_width] = self.frame  # Left video area
         # Right control panel
         controls = np.zeros((self.win_height, self.control_width, 3), dtype=np.uint8)
+
         cv2.rectangle(controls, (10,10), (110,60), self.edit_button_color, -1)
         cv2.putText(controls, 'EDIT', (20,45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
         cv2.rectangle(controls, (10,70), (110,120), self.target_button_color, -1)
         cv2.putText(controls, 'Target', (20,105), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
         cv2.rectangle(controls, (10,130), (110,180), self.detect_button_color, -1)
         cv2.putText(controls, 'Detect', (20,165), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
         cv2.rectangle(controls, (10,190), (110,240), self.train_button_color, -1)
         cv2.putText(controls, 'Train', (20,225), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        
+        cv2.rectangle(controls, (10,250), (110,300), self.exit_button_color, -1)
+        cv2.putText(controls, 'Exit', (20,285), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
         combined[:, self.win_width-self.control_width:] = controls
 
         # Draw interactive rectangle
@@ -441,9 +459,14 @@ class FishDetector():
     # save operation
     def update_frame_stamps(self):
         self.frame_stamps.append(self.keypoint_stamp)
-    def reset_video_out(self):
-        self.output_video = self.save_video_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
-        self.out = cv2.VideoWriter(self.output_video,self.fourcc,self.fps,(self.width,self.height))
+    def setup_episode_num(self,episode_num):
+        self.episode_num = episode_num
+    def setup_video_out(self):
+        if self.episode_num is not None:
+            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.mp4'
+        else:
+            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+        self.out = cv2.VideoWriter(self.output_video_file,self.fourcc,self.fps,(self.width,self.height))
     def export_frame_stamps(self):
         if self.my_anno_flag == False:
             info = {'total_frames': len(self.frame_stamps)}
@@ -453,8 +476,7 @@ class FishDetector():
                     'target_x': self.target_x,
                     'target_y': self.target_y,
                     'drag_threshold': self.drag_threshold
-                    }
-            
+                    }     
         data = {
             "frame_stamps": self.frame_stamps,
             "info": info
@@ -468,6 +490,8 @@ class FishDetector():
 
 
     def minimun_pipeline(self):
+        if self.save_video_flag == True:
+            self.setup_video_out()
         while True:
             # 读取视频的每一帧
             ret, ori_frame = self.cap.read()
@@ -482,6 +506,12 @@ class FishDetector():
                 # 进行绘制
                 self.draw_all_in_frame()
 
+            if self.save_video_flag:
+                if self.mix_anno_flag:
+                    self.out.write(self.frame)
+                else:
+                    self.out.write(ori_frame)
+
             # Resize video frame
             if self.my_anno_flag:
                 self.display_annotation()
@@ -489,8 +519,7 @@ class FishDetector():
             # 显示帧
             cv2.imshow(self.window_name, self.frame)
             cv2.waitKey(1)
-            if self.save_frame_flag:
-                self.out.write(self.frame)
+            
             if self.save_json_flag:
                 self.update_frame_stamps()
             self.reset_key_points()
@@ -498,10 +527,12 @@ class FishDetector():
                 # 按 'q' 键退出
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+                if self.exit_flag:
+                    break
 
         # 释放视频捕获对象并关闭所有窗口
         self.cap.release()
-        if self.save_frame_flag:
+        if self.save_video_flag:
             self.out.release()
         
         if self.save_json_flag:
@@ -522,14 +553,19 @@ class FishDetector():
                 self.detect_a_fish()
                 # 进行绘制
                 self.draw_a_fish_in_frame()
+
+            if self.save_video_flag:
+                if self.mix_anno_flag:
+                    self.out.write(self.frame)
+                else:
+                    self.out.write(ori_frame)
+                    
             # Resize video frame
             if self.my_anno_flag:
                 self.display_annotation()
             # 显示帧
             cv2.imshow(self.window_name, self.frame)
             cv2.waitKey(1)
-            if self.save_frame_flag:
-                self.out.write(self.frame)
             if self.save_json_flag:
                 self.update_frame_stamps()
             self.reset_key_points()
@@ -537,12 +573,14 @@ class FishDetector():
                 # 按 'q' 键退出
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break    
+                if self.exit_flag:
+                    break
 
             # 释放视频捕获对象并关闭所有窗口
         self.cap.release()
-        if self.save_frame_flag:
+        if self.save_video_flag:
             self.out.release()
-            print("Video saved to: ", self.output_video)
+            print("Video saved to: ", self.output_video_file)
         
         if self.save_json_flag:
             self.export_frame_stamps()

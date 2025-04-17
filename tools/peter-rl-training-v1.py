@@ -173,9 +173,10 @@ def main():
 
     win11_save_cfg_dict = {
         'save_frame_flag': False,
-        'save_video_path': '/video',
+        'video_output_path': '/video',
         'save_json_flag': False,
         'json_output_path': '/output/json', 
+        'mix_anno_flag': False,
     }
 
     my_serial_config_dict = {
