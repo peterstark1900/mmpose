@@ -141,15 +141,16 @@ def main():
         'target_button_color': (0, 0, 255),
         'detect_button_color': (0, 0, 255),
         'train_button_color': (0, 0, 255),
+        'exit_button_color': (0, 0, 255),
         'win_width': 2120,
         'win_height': 1080,
         'control_width': 200,
     }
 
     win11_capture_cfg_dict = {
-        # 'detect_type': 'camera',
+        'detect_type': 'camera',
         # 'capture_type': 1,
-        'detect_type': 'video',
+        # 'detect_type': 'video',
         # 'input_vidoe_path' : r"C:\Users\peter\OneDrive\毕设\数据集\Fish-1222\fish-1222-demo20.mp4",
         # 'input_vidoe_path' : r"E:\Fish-0214\fish-0214-demo5.mp4",
         # 'input_vidoe_path' :r"E:\Fish-0223\fish-0223-demo13.mp4",
@@ -172,7 +173,7 @@ def main():
     }
 
     win11_save_cfg_dict = {
-        'save_frame_flag': False,
+        'save_video_flag': False,
         'video_output_path': '/video',
         'save_json_flag': False,
         'json_output_path': '/output/json', 
