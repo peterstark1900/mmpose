@@ -13,8 +13,12 @@ def main():
     env = gym.make(env_name)
     env.seed(0)
     torch.manual_seed(0)
-    state_dim = env.observation_space.shape
-    action_dim = env.action_space.shape
+    state = env.observation_space
+    action = env.action_space
+    print("state: ", state)
+    print("action: ", action)
+    state_dim = env.observation_space.shape[0]
+    action_dim = env.action_space.n
     print("state_dim: ", state_dim)
     print("action_dim: ", action_dim)
 
