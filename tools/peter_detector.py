@@ -150,6 +150,22 @@ class FishDetector():
                 self.window_name = 'Frame'
                 cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
                 cv2.setMouseCallback(self.window_name, self.mouse_callback)
+                # observation space
+                self.p_hx = None
+                self.p_hy = None
+                self.p_bx = None
+                self.p_by = None
+                self.v_x = None
+                self.v_y = None
+                self.theta_dot = None
+
+                self.theta_current = None
+                self.theta_last = None
+                self.p_hx_last = None
+                self.p_hy_last = None
+                self.distance_current = None
+                self.distance_last = None
+
                 print('Annotation object is initialized!')
         else:
             print("Warning: Annotation configuration is None, no annotation will be displayed")
@@ -184,6 +200,37 @@ class FishDetector():
 
 
         print('MMPoseInferencer object is initialized!')
+
+    #################detect  operation####################
+
+    def detect_in_frame(self):
+        result_generator = self.inferencer(self.frame,self.kpt_thr)
+        for result in result_generator:
+            predictions = result['predictions'][0]
+            self.key_points.append(predictions.pred_instances.keypoints)
+
+    def detect_a_fish(self):
+        result_generator = self.inferencer(self.frame,self.kpt_thr)
+        single_result = next(result_generator)
+        predictions = single_result['predictions'][0]
+        key_points = predictions.pred_instances.keypoints
+        self.head_pos = tuple(map(int, key_points[0][0]))
+        self.body_pos = tuple(map(int, key_points[0][1]))
+        self.joint_pos = tuple(map(int, key_points[0][2]))
+        self.tail_pos = tuple(map(int, key_points[0][3]))
+        if self.my_anno_flag == True:
+            # update observation space
+            self.p_hx = self.head_pos[0]
+            self.p_hy = self.head_pos[1]
+            self.p_bx = self.body_pos[0]
+            self.p_by = self.body_pos[1]
+
+        # self.head_pos = key_points[0][0]
+        # self.body_pos = key_points[0][1]
+        # self.joint_pos = key_points[0][2]
+        # self.tail_pos = key_points[0][3]
+
+    #################display operation####################
 
     def mouse_callback(self, event, x, y, flags, param):
 
@@ -250,29 +297,24 @@ class FishDetector():
                     self.exit_flag = not self.exit_flag
                     self.exit_button_color = (0, 0, 255) if self.exit_flag else (0, 0, 255)
                     print(f"Exit flag: {'True' if self.exit_flag else 'False'}")
-    ###########################################
-    # detect and display operation   
-    def detect_in_frame(self):
-        result_generator = self.inferencer(self.frame,self.kpt_thr)
-        for result in result_generator:
-            predictions = result['predictions'][0]
-            self.key_points.append(predictions.pred_instances.keypoints)
+    
+    def update_train_button(self):
+        '''
+        this function is used to update the train button color and detect button color
+        '''
+        if self.train_flag == True:
+            self.train_button_color = (0, 255, 0)
+            print("Train mode: ON")
+            self.detect_flag = True
+            self.detect_button_color = (0, 255, 0)
+            print("Detect mode: ON")
+        else:
+            self.train_button_color = (0, 0, 255)
+            print("Train mode: OFF")
+            self.detect_flag = False
+            self.detect_button_color = (0, 0, 255)
+            print("Detect mode: OFF")
 
-    def detect_a_fish(self):
-        result_generator = self.inferencer(self.frame,self.kpt_thr)
-        single_result = next(result_generator)
-        predictions = single_result['predictions'][0]
-        key_points = predictions.pred_instances.keypoints
-        self.head_pos = tuple(map(int, key_points[0][0]))
-        self.body_pos = tuple(map(int, key_points[0][1]))
-        self.joint_pos = tuple(map(int, key_points[0][2]))
-        self.tail_pos = tuple(map(int, key_points[0][3]))
-
-        # self.head_pos = key_points[0][0]
-        # self.body_pos = key_points[0][1]
-        # self.joint_pos = key_points[0][2]
-        # self.tail_pos = key_points[0][3]
- 
     def display_annotation(self):
         self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
         # Create composite image
@@ -388,20 +430,83 @@ class FishDetector():
         self.key_points = []
         self.keypoint_stamp = {}
     
-    
-    #############################################################        
-    # get state
+    ####################calculate operation#####################
+    def calculate_theta(self):
+        ''' calculate the angle `theta`
+        `theta` is the angle between `v` and `p`
+		`p` : vector formed by connecting point `head` and point `body`
+		`d` : vector formed by connecting point `head` and target `p`
+
+        this operation is only valid when there is only one fish in the frame
+        '''
+        p = np.array([self.body_pos[0] - self.head_pos[0], self.body_pos[1] - self.head_pos[1]])
+        d = np.array([self.target_x - self.head_pos[0], self.target_y - self.head_pos[1]])
+        cos_theta = np.dot(p, d) / (np.linalg.norm(p) * np.linalg.norm(d))
+        self.theta_current = np.arccos(cos_theta)
+
+    def calculate_theta_dot(self):   
+        ''' calculate the angular velocity `theta_dot`
+        `theta_dot` is the angular velocity of the fish
+        this operation is only valid when there is only one fish in the frame 
+        '''
+        if self.theta_last is None:
+            self.theta_last = self.theta_current
+            self.theta_dot = (self.theta_current - self.theta_last) / (1/self.fps)
+        else:
+            self.theta_dot = (self.theta_current - self.theta_last) / (1/self.fps)
+    def calculate_v_x(self):
+        ''' calculate the velocity `v_x`
+        `v_x` is the velocity of the fish in the x direction
+        this operation is only valid when there is only one fish in the frame
+        '''
+        if self.p_hx_last is None:
+            self.p_hx_last = self.p_hx
+        self.v_x = (self.p_hx - self.p_hx_last) / (1/self.fps)
+        self.p_hx_last = self.p_hx
+
+    def calculate_v_y(self):
+        ''' calculate the velocity `v_y`
+        `v_y` is the velocity of the fish in the y direction
+        this operation is only valid when there is only one fish in the frame
+        '''
+        if self.p_hy_last is None:
+            self.p_hy_last = self.p_hy
+        self.v_y = (self.p_hy - self.p_hy_last) / (1/self.fps)
+        self.p_hy_last = self.p_hy
+
+    def calculate_distance(self):
+        ''' calculate the distance between the head and the target point
+        this operation is only valid when there is only one fish in the frame
+        '''
+        if self.distance_current is not None:
+            self.distance_last = self.distance_current
+        self.distance_current = np.sqrt((self.head_pos[0] - self.target_x)**2 + (self.head_pos[1] - self.target_y)**2)   
+    ###################get and set operation###################
+
+    def set_save_sate(self,flag):
+        self.save_video_flag = flag
+        self.save_json_flag = flag
+        print("Save video flag: ",self.save_video_flag)
+        print("Save json flag: ",self.save_json_flag)
+    def set_train_flag(self,flag):
+        self.train_flag = flag
+        self.update_train_button()     
     def get_train_flag(self):
         return self.train_flag
-    def get_distance(self):
+    def get_distance_current(self):
         ''' get the distance between the head and the target point
         this operation is only valid when there is only one fish in the frame
-
+        make sure `calculate_distance()` is called before calling this function 
         '''
-        distance = np.sqrt((self.head_pos[0] - self.target_x)**2 + (self.head_pos[1] - self.target_y)**2)
-        return distance
-
-    def get_angle(self):
+        return self.distance_current
+    def get_distance_last(self):
+        ''' get the distance between the head and the target point
+        this operation is only valid when there is only one fish in the frame
+        '''
+        if self.distance_last is None:
+            self.distance_last = self.distance_current
+        return self.distance_last
+    def get_theta_current(self):
         ''' get the angle `theta`
         `theta` is the angle between `v` and `p`
 		`v` : vector formed by connecting point `head` and point `body`
@@ -409,12 +514,32 @@ class FishDetector():
 
         this operation is only valid when there is only one fish in the frame
         '''
-        v = np.array([self.body_pos[0] - self.head_pos[0], self.body_pos[1] - self.head_pos[1]])
-        p = np.array([self.target_x - self.head_pos[0], self.target_y - self.head_pos[1]])
-        cos_theta = np.dot(v, p) / (np.linalg.norm(v) * np.linalg.norm(p))
-        theta = np.arccos(cos_theta)
-        return theta
+        return self.theta_current
 
+    def get_theta_dot(self):
+        ''' get the angular velocity `theta_dot`
+        `theta_dot` is the angular velocity of the fish
+        this operation is only valid when there is only one fish in the frame   
+        '''
+        return self.theta_dot
+    
+    def get_state(self):
+        '''
+        get the observation space of the fish
+        before using this function, please make sure that the following menber function is called:
+        `calculate_theta()`
+        `calculate_theta_dot()`
+        `detect_a_fish()`
+        `calculate_v_x()`
+        '''
+        return np.array([self.p_hx, \
+                         self.p_hy, \
+                         self.p_bx, \
+                         self.p_by, \
+                         self.v_x, \
+                         self.v_y, \
+                         self.theta_dot])
+    
     def is_in_rect(self):
         '''
         check if all the keypoints are in the rect
@@ -431,34 +556,9 @@ class FishDetector():
             return False
         else:
             return True
-    
-    def get_state(self, start_point = None):
-        '''
-        get the coordinates of the fish 
-        '''
-        if start_point is None:
-           return self.head_pos, self.body_pos, self.joint_pos, self.tail_pos
-        else:
-            # return (self.head_pos[0] - start_point[0], self.head_pos[1] - start_point[1]), \
-            #     (self.body_pos[0] - start_point[0], self.body_pos[1] - start_point[1]), \
-            #     (self.joint_pos[0] - start_point[0], self.joint_pos[1] - start_point[1]), \
-            #     (self.tail_pos[0] - start_point[0], self.tail_pos[1] - start_point[1])
-            return (
-                (int(self.head_pos[0]) - int(start_point[0]), int(self.head_pos[1]) - int(start_point[1])),
-                (int(self.body_pos[0]) - int(start_point[0]), int(self.body_pos[1]) - int(start_point[1])),
-                (int(self.joint_pos[0]) - int(start_point[0]), int(self.joint_pos[1]) - int(start_point[1])),
-                (int(self.tail_pos[0]) - int(start_point[0]), int(self.tail_pos[1]) - int(start_point[1]))
-            )
         
-    def get_start_point(self):
-        self.reset_key_points()
-        self.detect_a_fish()
-        return self.head_pos
-    
-    ########################################################
-    # save operation
-    def update_frame_stamps(self):
-        self.frame_stamps.append(self.keypoint_stamp)
+    ######################## save operation #######################
+
     def setup_episode_num(self,episode_num):
         self.episode_num = episode_num
     def setup_video_out(self):
@@ -467,7 +567,29 @@ class FishDetector():
         else:
             self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
         self.out = cv2.VideoWriter(self.output_video_file,self.fourcc,self.fps,(self.width,self.height))
+        print(f"Video will be save to: {self.output_video_file}")
+        
+    def export_current_video(self):
+        # make sure the `save_video_flag` is `False`
+        self.save_video_flag = False
+        if hasattr(self, 'out') and self.out.isOpened():
+            self.out.release()
+            print(f"Video has saved to: {self.output_video_file}")
+        else:
+            print("Fail to export video.")
+
+    def setup_frame_stamps(self):
+        self.frame_stamps = []
+        self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.json'
+        # if the path does not exist, create it
+        if not os.path.exists(self.json_output_path):
+            os.makedirs(self.json_output_path)
+        print(f"Json will be save to: {self.output_json_file}") 
+    def update_frame_stamps(self):
+        self.frame_stamps.append(self.keypoint_stamp)   
     def export_frame_stamps(self):
+        # make sure the `save_json_flag` is `False`
+        self.save_json_flag = False
         if self.my_anno_flag == False:
             info = {'total_frames': len(self.frame_stamps)}
         else:
@@ -481,17 +603,18 @@ class FishDetector():
             "frame_stamps": self.frame_stamps,
             "info": info
         }
-        self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.json'
-        # if the path does not exist, create it
-        if not os.path.exists(self.json_output_path):
-            os.makedirs(self.json_output_path)
+        
         with open(self.output_json_file, 'w') as f:
             json.dump(data, f, indent=4)
+        
+        print(f"Json has saved to: {self.output_json_file}")
 
 
     def minimun_pipeline(self):
         if self.save_video_flag == True:
             self.setup_video_out()
+        if self.save_json_flag == True:
+            self.setup_frame_stamps()
         while True:
             # 读取视频的每一帧
             ret, ori_frame = self.cap.read()
@@ -533,7 +656,9 @@ class FishDetector():
         # 释放视频捕获对象并关闭所有窗口
         self.cap.release()
         if self.save_video_flag:
-            self.out.release()
+            # self.out.release()
+            # print(f"Video is being saved to: {self.output_video_file}")
+            self.export_current_video()
         
         if self.save_json_flag:
             self.export_frame_stamps()
@@ -541,6 +666,9 @@ class FishDetector():
         cv2.destroyAllWindows()
 
     def a_fish_pipeline(self):
+        if self.target_x == None or self.target_y ==None:
+            print("Please set the target point first!")
+            exit()
         while True:
             # 读取视频的每一帧
             ret, ori_frame = self.cap.read()
@@ -549,6 +677,7 @@ class FishDetector():
                 break
 
             self.frame = cv2.resize(ori_frame, (1920, 1080))
+
             if self.detect_flag:
                 self.detect_a_fish()
                 # 进行绘制
@@ -578,14 +707,6 @@ class FishDetector():
 
             # 释放视频捕获对象并关闭所有窗口
         self.cap.release()
-        if self.save_video_flag:
-            self.out.release()
-            print("Video saved to: ", self.output_video_file)
-        
-        if self.save_json_flag:
-            self.export_frame_stamps()
-            print("Json saved to: ", self.output_json_file)
-
         cv2.destroyAllWindows()    
 
 
