@@ -66,7 +66,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                         done = False
                         reward_pos = 0
                     
-                    reward_appr = (distance_current - distance_last)*self.lambda_2
+                    reward_appr = (distance_current - distance_last)*lambda_2
                     detector.calculate_theta_current()
                     theta_current = detector.get_theta_current()
                     detector.calculate_theta_dot()
