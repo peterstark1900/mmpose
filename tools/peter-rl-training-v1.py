@@ -11,10 +11,12 @@ from rl_utils import ReplayBuffer, train_off_policy_agent, train_on_policy_agent
 
 
 from peter_env import Fish2DEnv
-from peter_RLNetwork import PolicyNet, ValueNet, ActorCritic
+from tools.peter_AC_Network import SACContinuous
+from tools.peter_SAC_Network import PolicyNet, ValueNet, ActorCritic
 from peter_detector import FishDetector
 
 import time
+import datetime
 
 import threading
 
@@ -77,7 +79,8 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                         done = True
                         print("Episode steps reach the max!")
                 
-                    reward = reward_pos + reward_appr + reward_theta 
+                    reward = reward_pos + reward_appr + reward_theta
+                    episode_return += reward 
 
                 print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(distance_current)+' Theta: '+str(theta_current)+' reward: '+ str(reward), end="")
                 time.sleep(sleep_time)
@@ -86,27 +89,53 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
             detector.set_train_flag(False)
             detector.export_current_video()
             detector.export_frame_stamps()
+            return_list.append(episode_return)
 
             if (i_episode+1) % 10 == 0:
                 pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
             pbar.update(1)
-        
+
+    episodes_list = list(range(len(return_list)))
+    plt.style.use('bmh') 
+    plt.figure(figsize=(16, 10), dpi=600)
+    plt.plot(episodes_list, return_list)
+    plt.xlabel('Episodes')
+    plt.ylabel('Returns')
+    plt.title('Reward')
+    plt.grid(True)
+    # plt.show()  
+    filename = 'reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.png'
+    plt.savefig(filename,format='png',bbox_inches = 'tight')
+
     #############################  real region  #######################
     # env = Fish2DEnv(detector, serial_cfg, reward_cfg)
+    # state_dim = 7
+    # action_dim = 4
+
+
+    # random.seed(0)
+    # np.random.seed(0)
+    # env.seed(0)
+    # torch.manual_seed(0)
+
     # actor_lr = 1e-3
     # critic_lr = 1e-2
-    # num_episodes = 1000
+    # alpha_lr = 3e-4
+    # num_episodes = 100
     # hidden_dim = 128
     # gamma = 0.98
+    # tau = 0.005  # 软更新参数
+    # buffer_size = 100000
+    # minimal_size = 1000
+    # batch_size = 64
+    # target_entropy = -4
     # device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
     #     "cpu")
 
-    # torch.manual_seed(0)
-    # state_dim = env.observation_space.shape[0]
-    # action_dim = env.action_space.n
-    # agent = ActorCritic(state_dim, hidden_dim, action_dim, actor_lr, critic_lr,
-    #                     gamma, device)
-    # # train_on_policy_agent(env, agent, num_episodes)
+    # replay_buffer = ReplayBuffer(buffer_size)
+    # agent = SACContinuous(state_dim, hidden_dim, action_dim,
+    #                   actor_lr, critic_lr, alpha_lr, target_entropy, tau,
+    #                   gamma, device)
     # return_list = []
     # for i in range(10):
     #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
@@ -126,14 +155,19 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
     #             while not done:
     #                 action = agent.take_action(state)
     #                 next_state, reward, done, _ = env.step(action)
-    #                 transition_dict['states'].append(state)
-    #                 transition_dict['actions'].append(action)
-    #                 transition_dict['next_states'].append(next_state)
-    #                 transition_dict['rewards'].append(reward)
-    #                 transition_dict['dones'].append(done)
+    #                 replay_buffer.add(state, action, reward, next_state, done)
+    #                 # transition_dict['states'].append(state)
+    #                 # transition_dict['actions'].append(action)
+    #                 # transition_dict['next_states'].append(next_state)
+    #                 # transition_dict['rewards'].append(reward)
+    #                 # transition_dict['dones'].append(done)
     #                 state = next_state
     #                 episode_return += reward
-                
+    #                 if replay_buffer.size() > minimal_size:
+    #                     b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
+    #                     transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
+    #                     agent.update(transition_dict)
+    #             return_list.append(episode_return)
     #             detector.set_save_state(False)
     #             detector.set_train_flag(False)
     #             detector.export_current_video()
@@ -144,7 +178,23 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
     #             if (i_episode+1) % 10 == 0:
     #                 pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
     #             pbar.update(1)
-    
+    # episodes_list = list(range(len(return_list)))
+    # plt.style.use('bmh') 
+    # plt.figure(figsize=(16, 10), dpi=600)
+    # plt.plot(episodes_list, return_list)
+    # plt.xlabel('Episodes')
+    # plt.ylabel('Returns')
+    # plt.title('Reward')
+    # plt.grid(True)
+    # # plt.show()  
+    # filename = 'reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.png'
+    # plt.savefig(filename,format='png',bbox_inches = 'tight')
+
+    # current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    # save_path = f'sac_model_{current_time}.pth'
+    # agent.save_model(save_path)
+    # print(f'Model saved to {save_path}')
+
 def main():
     anno_cfg_dict = {
         'my_anno_flag': True,
