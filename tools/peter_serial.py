@@ -159,34 +159,34 @@ def main():
 
     my_action_dict_1 = {
         "motion_state": "CFE",
-        "amp": 30,
-        "offset": 15,
-        "omega": 10,
-        "ratio": 10,
+        "amp": '20',
+        "offset": '15',
+        "omega": '10',
+        "ratio": '10',
         "duration": 5,
     }
     my_action_dict_2 = {
         "motion_state": "CLE",
-        "amp": 50,
-        "offset": 15,
-        "omega": 30,
-        "ratio": 10,
+        "amp": '35',
+        "offset": '15',
+        "omega": '20',
+        "ratio": '10',
         "duration": 5,
     }
     my_action_dict_3 = {
         "motion_state": "CRE",
-        "amp": 40,
-        "offset": 15,
-        "omega": 20,
-        "ratio": 10,
+        "amp": '40',
+        "offset": '15',
+        "omega": '15',
+        "ratio": '10',
         "duration": 5,
     }
     my_action_dict_4 = {
         "motion_state": "CSE",
-        "amp": 40,
-        "offset": 15,
-        "omega": 20,
-        "ratio": 10,
+        "amp": '40',
+        "offset": '15',
+        "omega": '20',
+        "ratio": '10',
         "duration": 5,
     }
     

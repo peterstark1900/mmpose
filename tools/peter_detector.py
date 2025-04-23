@@ -4,6 +4,7 @@ import cv2
 import json
 import datetime
 import os
+import time
 '''
 detect_type, 
 capture_num,
@@ -53,7 +54,7 @@ class FishDetector():
         self.detect_type = capture_cfg.get('detect_type')
         if self.detect_type == 'camera':
             # self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
-            self.cap = cv2.VideoCapture(0)
+            self.cap = cv2.VideoCapture(1)
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             self.cap.set(cv2.CAP_PROP_FPS, 30)
@@ -83,7 +84,8 @@ class FishDetector():
             if writer_cfg.get('save_video_flag') == True and writer_cfg.get('video_output_path') is not None:
                 self.save_video_flag = True
                 self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
-                self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+                # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+                self.fps = 8
                 print(self.fps)
                 # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 self.width = 1920
@@ -167,6 +169,11 @@ class FishDetector():
                 self.distance_last = None
 
                 print('Annotation object is initialized!')
+
+                self.combined_buffer = np.zeros((self.win_height, self.win_width, 3), 
+                                          dtype=np.uint8)
+                self.controls_buffer = np.zeros((self.win_height, self.control_width, 3), 
+                                          dtype=np.uint8)
         else:
             print("Warning: Annotation configuration is None, no annotation will be displayed")
             self.my_anno_flag = False
@@ -304,54 +311,74 @@ class FishDetector():
         '''
         if self.train_flag == True:
             self.train_button_color = (0, 255, 0)
-            print("Train mode: ON")
+            print("\nTrain mode: ON")
             self.detect_flag = True
             self.detect_button_color = (0, 255, 0)
             print("Detect mode: ON")
         else:
             self.train_button_color = (0, 0, 255)
-            print("Train mode: OFF")
+            print("\nTrain mode: OFF")
             self.detect_flag = False
             self.detect_button_color = (0, 0, 255)
             print("Detect mode: OFF")
 
     def display_annotation(self):
         self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
-        # Create composite image
-        combined = np.zeros((self.win_height, self.win_width, 3), dtype=np.uint8)
-        combined[:, :self.win_width-self.control_width] = self.frame  # Left video area
-        # Right control panel
-        controls = np.zeros((self.win_height, self.control_width, 3), dtype=np.uint8)
+        # # Create composite image
+        # combined = np.zeros((self.win_height, self.win_width, 3), dtype=np.uint8)
+        # combined[:, :self.win_width-self.control_width] = self.frame  # Left video area
+        # # Right control panel
+        # controls = np.zeros((self.win_height, self.control_width, 3), dtype=np.uint8)
 
-        cv2.rectangle(controls, (10,10), (110,60), self.edit_button_color, -1)
-        cv2.putText(controls, 'EDIT', (20,45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-
-        cv2.rectangle(controls, (10,70), (110,120), self.target_button_color, -1)
-        cv2.putText(controls, 'Target', (20,105), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-
-        cv2.rectangle(controls, (10,130), (110,180), self.detect_button_color, -1)
-        cv2.putText(controls, 'Detect', (20,165), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
-
-        cv2.rectangle(controls, (10,190), (110,240), self.train_button_color, -1)
-        cv2.putText(controls, 'Train', (20,225), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
         
-        cv2.rectangle(controls, (10,250), (110,300), self.exit_button_color, -1)
-        cv2.putText(controls, 'Exit', (20,285), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        # Reuse pre-allocated buffers
+        self.combined_buffer[:] = 0
+        self.controls_buffer[:] = 0
+        # Composite frame
+        self.combined_buffer[:, :self.win_width-self.control_width] = self.frame
+        
 
-        combined[:, self.win_width-self.control_width:] = controls
+        
+        cv2.rectangle(self.controls_buffer, (10,10), (110,60), self.edit_button_color, -1)
+        cv2.putText(self.controls_buffer, 'EDIT', (20,45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
 
+        cv2.rectangle(self.controls_buffer, (10,70), (110,120), self.target_button_color, -1)
+        cv2.putText(self.controls_buffer, 'Target', (20,105), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
+        cv2.rectangle(self.controls_buffer, (10,130), (110,180), self.detect_button_color, -1)
+        cv2.putText(self.controls_buffer, 'Detect', (20,165), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
+        cv2.rectangle(self.controls_buffer, (10,190), (110,240), self.train_button_color, -1)
+        cv2.putText(self.controls_buffer, 'Train', (20,225), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+        
+        cv2.rectangle(self.controls_buffer, (10,250), (110,300), self.exit_button_color, -1)
+        cv2.putText(self.controls_buffer, 'Exit', (20,285), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255,255,255), 2)
+
+        # combined[:, self.win_width-self.control_width:] = controls
+        self.combined_buffer[:, self.win_width-self.control_width:] = self.controls_buffer
+
+        # # Draw interactive rectangle
+        # x1, y1, x2, y2 = self.current_rect
+        # cv2.rectangle(self.combined_buffer, 
+        #             (min(x1,x2), min(y1,y2)),
+        #             (max(x1,x2), max(y1,y2)),
+        #             (0,255,0), 2)
+        # cv2.circle(self.combined_buffer, (x1, y1), 8, (255,0,0), -1)
+        # cv2.circle(self.combined_buffer, (x2, y2), 8, (255,0,0), -1)
+        # cv2.circle(self.combined_buffer, (self.target_x, self.target_y), 8, (0,0,255), -1)
+
+        self.frame = self.combined_buffer
+
+    def draw_interactive_rect(self):
         # Draw interactive rectangle
         x1, y1, x2, y2 = self.current_rect
-        cv2.rectangle(combined, 
+        cv2.rectangle(self.frame,
                     (min(x1,x2), min(y1,y2)),
                     (max(x1,x2), max(y1,y2)),
                     (0,255,0), 2)
-        cv2.circle(combined, (x1, y1), 8, (255,0,0), -1)
-        cv2.circle(combined, (x2, y2), 8, (255,0,0), -1)
-        cv2.circle(combined, (self.target_x, self.target_y), 8, (0,0,255), -1)
-
-        self.frame = combined
-            
+        cv2.circle(self.frame, (x1, y1), 8, (255,0,0), -1)
+        cv2.circle(self.frame, (x2, y2), 8, (255,0,0), -1)
+        cv2.circle(self.frame, (self.target_x, self.target_y), 8, (0,0,255), -1)
     def draw_all_in_frame(self):
         # 绘制关键点和线段
         if len(self.key_points) == self.real_num:
@@ -426,12 +453,13 @@ class FishDetector():
                 "tail": self.tail_pos
                 }
 
+
     def reset_key_points(self):
         self.key_points = []
         self.keypoint_stamp = {}
     
     ####################calculate operation#####################
-    def calculate_theta(self):
+    def calculate_theta_current(self):
         ''' calculate the angle `theta`
         `theta` is the angle between `v` and `p`
 		`p` : vector formed by connecting point `head` and point `body`
@@ -483,7 +511,7 @@ class FishDetector():
         self.distance_current = np.sqrt((self.head_pos[0] - self.target_x)**2 + (self.head_pos[1] - self.target_y)**2)   
     ###################get and set operation###################
 
-    def set_save_sate(self,flag):
+    def set_save_state(self,flag):
         self.save_video_flag = flag
         self.save_json_flag = flag
         print("Save video flag: ",self.save_video_flag)
@@ -545,15 +573,19 @@ class FishDetector():
         check if all the keypoints are in the rect
         '''
         x1, y1, x2, y2 = self.current_rect
-        head = self.head_pos
-        body = self.body_pos
-        joint = self.joint_pos
-        tail = self.tail_pos
-        if x1 <= head[0] <= x2 and y1 <= head[1] <= y2 and \
-            x1 <= body[0] <= x2 and y1 <= body[1] <= y2 and \
-            x1 <= joint[0] <= x2 and y1 <= joint[1] <= y2 and \
-            x1 <= tail[0] <= x2 and y1 <= tail[1] <= y2:
-            return False
+        # head = self.head_pos
+        # body = self.body_pos
+        # joint = self.joint_pos
+        # tail = self.tail_pos
+        if self.head_pos and self.body_pos and self.joint_pos and self.tail_pos:
+
+            if x1 <= self.head_pos[0] <= x2 and y1 <= self.head_pos[1] <= y2 and \
+                x1 <= self.body_pos[0] <= x2 and y1 <= self.body_pos[1] <= y2 and \
+                x1 <= self.joint_pos[0] <= x2 and y1 <= self.joint_pos[1] <= y2 and \
+                x1 <= self.tail_pos[0] <= x2 and y1 <= self.tail_pos[1] <= y2:
+                return False
+            else:
+                return True
         else:
             return True
         
@@ -561,26 +593,44 @@ class FishDetector():
 
     def setup_episode_num(self,episode_num):
         self.episode_num = episode_num
+        print('Episode number is set to: ',self.episode_num)
     def setup_video_out(self):
-        if self.episode_num is not None:
-            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.mp4'
-        else:
-            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
-        self.out = cv2.VideoWriter(self.output_video_file,self.fourcc,self.fps,(self.width,self.height))
-        print(f"Video will be save to: {self.output_video_file}")
+        # if self.episode_num is not None:
+        #     self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.mp4'
+        # else:
+        #     self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+        # self.out = cv2.VideoWriter(self.output_video_file,self.fourcc,self.fps,(self.width,self.height))
+        # print(f"Video will be save to: {self.output_video_file}")
+        return
         
     def export_current_video(self):
-        # make sure the `save_video_flag` is `False`
-        self.save_video_flag = False
-        if hasattr(self, 'out') and self.out.isOpened():
-            self.out.release()
-            print(f"Video has saved to: {self.output_video_file}")
-        else:
-            print("Fail to export video.")
+        # # make sure the `save_video_flag` is `False`
+        # self.save_video_flag = False
+        # # if hasattr(self, 'out') and self.out.isOpened():
+        # #     self.out.release()
+        # #     print(f"Video has saved to: {self.output_video_file}")
+        # # else:
+        # #     print("Fail to export video.")
+
+        # # self.out.release()
+        # sleep_count = 0
+        # while not self.out.isOpened():
+        #     print("Waiting for the video to be saved...")
+        #     time.sleep(1)
+        #     sleep_count += 1
+        #     if sleep_count > 10:
+        #         print("Fail to export video.")
+        #         return
+        # self.out.release()    # Release the VideoWriter object
+        # print(f"Video has saved to: {self.output_video_file}")
+        return 
 
     def setup_frame_stamps(self):
         self.frame_stamps = []
-        self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.json'
+        if self.episode_num is not None:
+            self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.json'
+        else:
+            self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.json'
         # if the path does not exist, create it
         if not os.path.exists(self.json_output_path):
             os.makedirs(self.json_output_path)
@@ -629,13 +679,15 @@ class FishDetector():
                 # 进行绘制
                 self.draw_all_in_frame()
 
-            if self.save_video_flag:
-                if self.mix_anno_flag:
-                    self.out.write(self.frame)
-                else:
-                    self.out.write(ori_frame)
+            if self.my_anno_flag:
+                self.draw_interactive_rect()
 
-            # Resize video frame
+            # if self.save_video_flag:
+            #     if self.mix_anno_flag:
+            #         self.out.write(self.frame)
+            #     else:
+            #         self.out.write(ori_frame)
+
             if self.my_anno_flag:
                 self.display_annotation()
             
@@ -683,13 +735,15 @@ class FishDetector():
                 # 进行绘制
                 self.draw_a_fish_in_frame()
 
+            if self.my_anno_flag:
+                self.draw_interactive_rect()
+
             if self.save_video_flag:
                 if self.mix_anno_flag:
                     self.out.write(self.frame)
                 else:
                     self.out.write(ori_frame)
                     
-            # Resize video frame
             if self.my_anno_flag:
                 self.display_annotation()
             # 显示帧

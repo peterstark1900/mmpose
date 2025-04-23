@@ -11,14 +11,15 @@ from rl_utils import ReplayBuffer, train_off_policy_agent, train_on_policy_agent
 
 
 from peter_env import Fish2DEnv
-from tools.peter_AC_Network import SACContinuous
-from tools.peter_SAC_Network import PolicyNet, ValueNet, ActorCritic
+from peter_AC_Network import PolicyNet, ValueNet, ActorCritic
+from peter_SAC_Network import SACContinuous, PolicyNetContinuous, QValueNetContinuous
 from peter_detector import FishDetector
 
 import time
 import datetime
 
 import threading
+import queue
 
 # class Fish2DEnv(gym.Env):
 
@@ -29,83 +30,80 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
     lambda_1 = 1
     lambda_2 = 1
     reach_threshold = 0.05
-    num_episodes = 50
+    num_episodes = 20
     # transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-    counts = 0
+    
     # while True:
     return_list = []
-    max_episode_steps = 120
+    max_episode_steps = 30
     sleep_time = 1
-    for i in range(10):
-        with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
-            for i_episode in range(int(num_episodes/10)):
-                episode_return = 0
-                transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-            while not detector.get_train_flag():
-                print("\r Waiting for training command...", end="")
-                time.sleep(0.1)
-            print("Training command received!")
-            print("start episode %d"%(i_episode))
-            detector.setup_episode_num(i_episode)
-            detector.setup_video_out()
-            detector.setup_frame_stamps()
-            detector.set_save_state(True)
-            done = False
-            while not done:
-                counts += 1
-                if detector.is_in_rect():
-                    done = True
-                    reward_pos = -10
-                    reward = reward_pos 
-                else:
-                    detector.calculate_distance()
-                    distance_current = detector.get_distance_current()
-                    distance_last = detector.get_distance_last()
-                    if distance_current <= reach_threshold:
-                        done = True
-                        reward_pos = 10
-                    else:
-                        done = False
-                        reward_pos = 0
-                    
-                    reward_appr = (distance_current - distance_last)*lambda_2
-                    detector.calculate_theta_current()
-                    theta_current = detector.get_theta_current()
-                    detector.calculate_theta_dot()
-                    dot_theta = detector.get_theta_dot()
-                    reward_theta = -dot_theta*lambda_1
+    # for i in range(10):
+    #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
+    #         for i_episode in range(int(num_episodes/10)):
+    #             episode_return = 0
+    with tqdm(total=num_episodes) as pbar:
+        for i_episode in range(num_episodes):
+                while not detector.get_train_flag():
+                    # print("\r Waiting for training command...", end="")
+                    time.sleep(0.1)
+                # print("Training command received!")
+                print("start episode %d"%(i_episode))
+                detector.setup_episode_num(i_episode)
 
+                detector.setup_video_out()
+                detector.setup_frame_stamps()
+                detector.set_save_state(True)
+                done = False
+                counts = 0
+                while not done:
+                    counts += 1
                     if counts >= max_episode_steps:
                         done = True
                         print("Episode steps reach the max!")
-                
-                    reward = reward_pos + reward_appr + reward_theta
-                    episode_return += reward 
+                        episode_return = counts
+                    # if detector.is_in_rect():
+                    #     # debuging, disable this line temporarily 
+                    #     # done = True 
+                    #     reward_pos = -10
+                    #     reward = reward_pos 
+                    # else:
+                    #     detector.calculate_distance()
+                    #     distance_current = detector.get_distance_current()
+                    #     distance_last = detector.get_distance_last()
+                    #     if distance_current <= reach_threshold:
+                    #         done = True
+                    #         reward_pos = 10
+                    #     else:
+                    #         done = False
+                    #         reward_pos = 0
+                        
+                    #     reward_appr = (distance_current - distance_last)*lambda_2
+                    #     detector.calculate_theta_current()
+                    #     theta_current = detector.get_theta_current()
+                    #     detector.calculate_theta_dot()
+                    #     dot_theta = detector.get_theta_dot()
+                    #     reward_theta = -dot_theta*lambda_1
+                    #     reward = reward_pos + reward_appr + reward_theta
+                    #     episode_return += reward 
+                    
+                        # print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(distance_current)+' Theta: '+str(theta_current)+' reward: '+ str(reward), end="")
 
-                print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(distance_current)+' Theta: '+str(theta_current)+' reward: '+ str(reward), end="")
-                time.sleep(sleep_time)
+                    print('\r counts:  %d'%(counts), end="")
+                    time.sleep(sleep_time)
+        
+                detector.set_save_state(False)
+                detector.set_train_flag(False)
+                detector.export_current_video()
+                detector.export_frame_stamps()
+                return_list.append(episode_return)
+
+                # if (i_episode+1) % 10 == 0:
+                #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
+                pbar.update(1)
     
-            detector.set_save_state(False)
-            detector.set_train_flag(False)
-            detector.export_current_video()
-            detector.export_frame_stamps()
-            return_list.append(episode_return)
+    return return_list
 
-            if (i_episode+1) % 10 == 0:
-                pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
-            pbar.update(1)
-
-    episodes_list = list(range(len(return_list)))
-    plt.style.use('bmh') 
-    plt.figure(figsize=(16, 10), dpi=600)
-    plt.plot(episodes_list, return_list)
-    plt.xlabel('Episodes')
-    plt.ylabel('Returns')
-    plt.title('Reward')
-    plt.grid(True)
-    # plt.show()  
-    filename = 'reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.png'
-    plt.savefig(filename,format='png',bbox_inches = 'tight')
+    
 
     #############################  real region  #######################
     # env = Fish2DEnv(detector, serial_cfg, reward_cfg)
@@ -198,9 +196,9 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
 def main():
     anno_cfg_dict = {
         'my_anno_flag': True,
-        'current_rect': (100, 100, 200, 200),
-        'target_x': 600,
-        'target_y': 600,
+        'current_rect': (250, 125, 1720, 950),
+        'target_x': 1300,
+        'target_y': 700,
         'drag_threshold': 5,
         'edit_button_color': (0, 0, 255),
         'target_button_color': (0, 0, 255),
@@ -238,11 +236,11 @@ def main():
     }
 
     win11_save_cfg_dict = {
-        'save_video_flag': False,
-        'video_output_path': '/video',
-        'save_json_flag': False,
+        'save_video_flag': True,
+        'video_output_path': '/output/video',
+        'save_json_flag': True,
         'json_output_path': '/output/json', 
-        'mix_anno_flag': False,
+        'mix_anno_flag': True,
     }
 
     my_serial_config_dict = {
@@ -259,11 +257,26 @@ def main():
 
     my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,win11_save_cfg_dict)
     my_detector.set_save_state(False)
+    result_queue = queue.Queue()
     training_thread = threading.Thread(target=rl_train, args=(my_detector,))
+    # training_thread = threading.Thread(target=rl_train, args=(my_detector, result_queue))
     training_thread.daemon = True
     training_thread.start()
     # my_detector.minimun_pipeline()
     my_detector.a_fish_pipeline()
+    # training_thread.join()
+    # return_list = result_queue.get()
+    # episodes_list = list(range(len(return_list)))
+    # plt.style.use('bmh') 
+    # plt.figure(figsize=(16, 10), dpi=600)
+    # plt.plot(episodes_list, return_list)
+    # plt.xlabel('Episodes')
+    # plt.ylabel('Returns')
+    # plt.title('Reward')
+    # plt.grid(True)
+    # # plt.show()  
+    # filename = 'reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.png'
+    # plt.savefig(filename,format='png',bbox_inches = 'tight')
     # while True:
     #     print('\r continue training: '+str(True)+' Distance: '+str(0.1)+' Theta: '+str(0.1), end="")
 

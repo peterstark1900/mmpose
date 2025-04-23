@@ -136,3 +136,4 @@ docs/**/modelzoo.md
 # custom
 *.mp4
 frame_stamps.json
+reward_*.png
