@@ -237,7 +237,7 @@ def main():
     }
 
     win11_save_cfg_dict = {
-        'save_video_flag': True,
+        'save_video_flag': False,
         'video_output_path': '/output/video',
         'save_json_flag': True,
         'json_output_path': '/output/json', 

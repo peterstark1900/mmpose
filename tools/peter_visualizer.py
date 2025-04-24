@@ -1,7 +1,7 @@
 import json
 import cv2
 import numpy as np
-
+from datetime import datetime
 
 
 class Visualizer():
@@ -12,6 +12,7 @@ class Visualizer():
         else:
             self.export_flag = False
         self.fps = vis_cofig_dict['fps']
+        self.add_fps = vis_cofig_dict['add_fps']
         self.keypoints = vis_cofig_dict['keypoints']
         self.point_colors = vis_cofig_dict['point_colors']
         if len(self.keypoints) != len(self.point_colors):
@@ -34,9 +35,24 @@ class Visualizer():
     def load_data(self,file_path):
         with open(file_path, 'r') as f:
             self.data = json.load(f)
+        self.window_name = file_path.split('\\')[-1].split('.')[0]
     def setup_video_out(self,original_json_path):
-        self.vidoe_name = original_json_path.split('\\')[-1].split('.')[0] + '.mp4'
+        self.vidoe_name = self.output_folder+'\\'+original_json_path.split('\\')[-1].split('.')[0] + '.mp4'
+        print(self.vidoe_name)
         self.video_out = cv2.VideoWriter(self.vidoe_name, cv2.VideoWriter_fourcc(*'mp4v'), self.fps, (1920, 1080))
+    def calculate_avg_fps(self):
+        if self.data is None:
+            print("Please load the data first!")
+            return
+        else:
+            # 将字符串时间戳转换为datetime对象
+            timestamps = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f") for ts in self.data['time_stamps']]
+            
+            # 计算总持续时间和平均帧间隔
+            total_duration = (timestamps[-1] - timestamps[0]).total_seconds()
+            average_interval = total_duration / (len(timestamps) - 1)
+            self.fps = round(1 / average_interval, 2)
+            print('fps is update to: '+str(round(1 / average_interval, 2)))  # 保留两位小数
     def show_animation(self):
         if self.data is None:
             print("Please load the data first!")
@@ -59,6 +75,8 @@ class Visualizer():
                 if self.draw_target:
                     target_x, target_y =self.data['info']['target_x'],self.data['info']['target_y']
                     cv2.circle(self.frame, (target_x,target_y), 5, self.target_color, -1)
+                if self.add_fps:
+                    cv2.putText(self.frame, str(self.fps), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
                 # head = frame_stamp['head']
                 # body = frame_stamp['body']
@@ -93,6 +111,7 @@ class Visualizer():
         
     def mini_pipeline(self,file_path):
         self.load_data(file_path)
+        self.calculate_avg_fps()
         if self.export_flag:
             self.setup_video_out(file_path)
         self.show_animation()
@@ -102,13 +121,14 @@ class Visualizer():
 def main():
 
     vis_cofig_dict = {
-        # 'output_folder': r"E:\output\json", 
-        'output_folder': None, 
+        'output_folder': r"E:\output\json", 
+        # 'output_folder': None, 
         'fps': 30,  # 每秒帧数    
+        'add_fps': False, # 是否添加fps信息
         'keypoints': ['head', 'body', 'joint', 'tail'],
         'point_colors': [(0, 0, 255), (0, 51, 102), (0, 255, 0), (204, 0, 102)],
         'line_thickness': 2,
-        'line_colors': (0, 0, 255),
+        'line_colors': (0, 0, 0),
         'draw_rect': True,
         'rect_color': (255, 0, 0),
         'rect_thickness': 2,
@@ -117,7 +137,7 @@ def main():
         'background_color': (255, 255, 255)
     }
 
-    file_path = r"E:\output\json\2025-04-24-10-13-09_1.json"
+    file_path = r"E:\output\json\2025-04-24-13-27-32_3.json"
     
     visualizer = Visualizer(vis_cofig_dict)
     visualizer.mini_pipeline(file_path)

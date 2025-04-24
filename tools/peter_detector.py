@@ -54,7 +54,7 @@ class FishDetector():
         self.detect_type = capture_cfg.get('detect_type')
         if self.detect_type == 'camera':
             # self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
-            self.cap = cv2.VideoCapture(0)
+            self.cap = cv2.VideoCapture(1)
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             self.cap.set(cv2.CAP_PROP_FPS, 30)
@@ -78,9 +78,11 @@ class FishDetector():
             if writer_cfg.get('save_video_flag') == False:
                 print("Warning: Save flag is False, no video will be saved")
                 self.save_video_flag = False
+                self.mix_anno_flag = False
             if writer_cfg.get('video_output_path') is None:
                 print("Warning: Output path is None, no video will be saved")
                 self.save_video_flag = False
+                self.mix_anno_flag = False
             if writer_cfg.get('save_video_flag') == True and writer_cfg.get('video_output_path') is not None:
                 self.save_video_flag = True
                 self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
@@ -93,6 +95,7 @@ class FishDetector():
                 self.height = 1080
                 # self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # encoder
                 self.fourcc = cv2.VideoWriter_fourcc('M','J','P','G')  # mjpg encoder
+                # self.fourcc = 0x00000021
                 self.video_output_path = writer_cfg.get('video_output_path')
                 # if the output_video_file folder does not exist, create it
                 self.video_output_path = os.path.join(os.getcwd(),writer_cfg.get('video_output_path'))
@@ -116,7 +119,7 @@ class FishDetector():
                     print("Output json folder created!")
         else:
             print("Warning: Writer configuration is None, no video and json file will be saved")
-            # self.save_video_flag = False
+            self.save_video_flag = False
             self.save_json_flag = False
 
         
@@ -198,6 +201,7 @@ class FishDetector():
 
         self.key_points = []
         self.frame_stamps= []
+        self.time_stamps = []
         self.keypoint_stamp = {}
         self.frame = None
         self.head_pos = None
@@ -406,6 +410,7 @@ class FishDetector():
                 "joint": joint,
                 "tail": tail
                 }
+                
 
 
                 # 绘制头部关键点
@@ -435,17 +440,17 @@ class FishDetector():
         # cv2.line(self.frame, tuple(map(int, self.body_pos)), tuple(map(int, self.joint_pos)), (255, 0, 0), 2)
         # cv2.line(self.frame, tuple(map(int, self.joint_pos)), tuple(map(int, self.tail_pos)), (255, 0, 0), 2)
         # 绘制头部关键点
-        cv2.circle(self.frame, self.head_pos, 5, (0, 255, 0), -1)
+        cv2.circle(self.frame, self.head_pos, 5, (0, 0, 255), -1)
         # 绘制身体关键点
-        cv2.circle(self.frame, self.body_pos, 5, (0, 255, 0), -1)
+        cv2.circle(self.frame, self.body_pos, 5, (0, 51, 102), -1)
         # 绘制关节关键点
         cv2.circle(self.frame, self.joint_pos, 5, (0, 255, 0), -1)
         # 绘制尾部关键点
-        cv2.circle(self.frame, self.tail_pos, 5, (0, 0, 255), -1)
+        cv2.circle(self.frame, self.tail_pos, 5, (204, 0, 102), -1)
         # 用线段连接关键点
-        cv2.line(self.frame, self.head_pos, self.body_pos, (255, 0, 0), 2)
-        cv2.line(self.frame, self.body_pos, self.joint_pos, (255, 0, 0), 2)
-        cv2.line(self.frame, self.joint_pos, self.tail_pos, (255, 0, 0), 2)
+        cv2.line(self.frame, self.head_pos, self.body_pos, (0, 0, 0), 2)
+        cv2.line(self.frame, self.body_pos, self.joint_pos, (0, 0, 0), 2)
+        cv2.line(self.frame, self.joint_pos, self.tail_pos, (0, 0, 0), 2)
 
         self.keypoint_stamp = {
                 "head": self.head_pos,
@@ -597,9 +602,9 @@ class FishDetector():
         print('Episode number is set to: ',self.episode_num)
     def setup_video_out(self):
         if self.episode_num is not None:
-            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.mp4'
+            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.avi'
         else:
-            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.avi'
         self.out = cv2.VideoWriter(self.output_video_file,self.fourcc,self.fps,(self.width,self.height))
         print(f"Video will be save to: {self.output_video_file}")
         return
@@ -628,6 +633,7 @@ class FishDetector():
 
     def setup_frame_stamps(self):
         self.frame_stamps = []
+        self.time_stamps = []
         if self.episode_num is not None:
             self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.json'
         else:
@@ -637,7 +643,8 @@ class FishDetector():
             os.makedirs(self.json_output_path)
         print(f"Json will be save to: {self.output_json_file}") 
     def update_frame_stamps(self):
-        self.frame_stamps.append(self.keypoint_stamp)   
+        self.frame_stamps.append(self.keypoint_stamp)
+        self.time_stamps.append(str(datetime.datetime.now()))   
     def export_frame_stamps(self):
         # make sure the `save_json_flag` is `False`
         self.save_json_flag = False
@@ -652,6 +659,7 @@ class FishDetector():
                     }     
         data = {
             "frame_stamps": self.frame_stamps,
+            "time_stamps": self.time_stamps,
             "info": info
         }
         
@@ -683,11 +691,11 @@ class FishDetector():
             if self.my_anno_flag:
                 self.draw_interactive_rect()
 
-            # if self.save_video_flag:
-            #     if self.mix_anno_flag:
-            #         self.out.write(self.frame)
-            #     else:
-            #         self.out.write(ori_frame)
+            if self.save_video_flag:
+                if self.mix_anno_flag:
+                    self.out.write(self.frame)
+                else:
+                    self.out.write(ori_frame)
 
             if self.my_anno_flag:
                 self.display_annotation()
@@ -708,10 +716,10 @@ class FishDetector():
 
         # 释放视频捕获对象并关闭所有窗口
         self.cap.release()
-        # if self.save_video_flag:
-            # self.out.release()
-            # print(f"Video is being saved to: {self.output_video_file}")
-            # self.export_current_video()
+        if self.save_video_flag:
+            self.out.release()
+            print(f"Video is being saved to: {self.output_video_file}")
+            self.export_current_video()
         
         if self.save_json_flag:
             self.export_frame_stamps()
@@ -739,11 +747,11 @@ class FishDetector():
             if self.my_anno_flag:
                 self.draw_interactive_rect()
 
-            # if self.save_video_flag:
-            #     if self.mix_anno_flag:
-            #         self.out.write(self.frame)
-            #     else:
-            #         self.out.write(ori_frame)
+            if self.save_video_flag:
+                if self.mix_anno_flag:
+                    self.out.write(self.frame)
+                else:
+                    self.out.write(ori_frame)
                     
             if self.my_anno_flag:
                 self.display_annotation()
