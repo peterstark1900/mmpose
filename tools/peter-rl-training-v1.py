@@ -50,7 +50,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                 print("start episode %d"%(i_episode))
                 detector.setup_episode_num(i_episode)
 
-                detector.setup_video_out()
+                # detector.setup_video_out()
                 detector.setup_frame_stamps()
                 detector.set_save_state(True)
                 done = False
@@ -93,7 +93,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
         
                 detector.set_save_state(False)
                 detector.set_train_flag(False)
-                detector.export_current_video()
+                # detector.export_current_video()
                 detector.export_frame_stamps()
                 return_list.append(episode_return)
 
@@ -145,7 +145,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
     #             print("Training command received!")
     #             print("start episode %d"%(i_episode))
     #             detector.setup_episode_num(i_episode)
-    #             detector.setup_video_out()
+    #             # detector.setup_video_out()
     #             detector.setup_frame_stamps()
     #             detector.set_save_state(True)
     #             state = env.reset()
@@ -168,7 +168,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
     #             return_list.append(episode_return)
     #             detector.set_save_state(False)
     #             detector.set_train_flag(False)
-    #             detector.export_current_video()
+    #             # detector.export_current_video()
     #             detector.export_frame_stamps()
 
     #             return_list.append(episode_return)

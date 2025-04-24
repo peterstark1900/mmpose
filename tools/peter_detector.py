@@ -74,30 +74,30 @@ class FishDetector():
         # Step 2: Initialize VideoWriter object
         if writer_cfg is not None:
             self.episode_num = None
-            # video configuration
-            if writer_cfg.get('save_video_flag') == False:
-                print("Warning: Save flag is False, no video will be saved")
-                self.save_video_flag = False
-            if writer_cfg.get('video_output_path') is None:
-                print("Warning: Output path is None, no video will be saved")
-                self.save_video_flag = False
-            if writer_cfg.get('save_video_flag') == True and writer_cfg.get('video_output_path') is not None:
-                self.save_video_flag = True
-                self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
-                # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-                self.fps = 8
-                print(self.fps)
-                # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-                self.width = 1920
-                # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                self.height = 1080
-                self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # encoder
-                self.video_output_path = writer_cfg.get('video_output_path')
-                # if the output_video_file folder does not exist, create it
-                self.video_output_path = os.path.join(os.getcwd(),writer_cfg.get('video_output_path'))
-                if not os.path.exists(os.path.dirname(self.video_output_path)):
-                    os.makedirs(os.path.dirname(self.video_output_path))
-                    print("Output video folder created!")
+            # # video configuration
+            # if writer_cfg.get('save_video_flag') == False:
+            #     print("Warning: Save flag is False, no video will be saved")
+            #     self.save_video_flag = False
+            # if writer_cfg.get('video_output_path') is None:
+            #     print("Warning: Output path is None, no video will be saved")
+            #     self.save_video_flag = False
+            # if writer_cfg.get('save_video_flag') == True and writer_cfg.get('video_output_path') is not None:
+            #     self.save_video_flag = True
+            #     self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
+            #     # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+            #     self.fps = 8
+            #     print(self.fps)
+            #     # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+            #     self.width = 1920
+            #     # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            #     self.height = 1080
+            #     self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # encoder
+            #     self.video_output_path = writer_cfg.get('video_output_path')
+            #     # if the output_video_file folder does not exist, create it
+            #     self.video_output_path = os.path.join(os.getcwd(),writer_cfg.get('video_output_path'))
+            #     if not os.path.exists(os.path.dirname(self.video_output_path)):
+            #         os.makedirs(os.path.dirname(self.video_output_path))
+            #         print("Output video folder created!")
             
             # json configuration
             if writer_cfg.get('save_json_flag') == False:
@@ -115,7 +115,7 @@ class FishDetector():
                     print("Output json folder created!")
         else:
             print("Warning: Writer configuration is None, no video and json file will be saved")
-            self.save_video_flag = False
+            # self.save_video_flag = False
             self.save_json_flag = False
 
         
@@ -512,9 +512,9 @@ class FishDetector():
     ###################get and set operation###################
 
     def set_save_state(self,flag):
-        self.save_video_flag = flag
+        # self.save_video_flag = flag
         self.save_json_flag = flag
-        print("Save video flag: ",self.save_video_flag)
+        # print("Save video flag: ",self.save_video_flag)
         print("Save json flag: ",self.save_json_flag)
     def set_train_flag(self,flag):
         self.train_flag = flag
@@ -594,7 +594,7 @@ class FishDetector():
     def setup_episode_num(self,episode_num):
         self.episode_num = episode_num
         print('Episode number is set to: ',self.episode_num)
-    def setup_video_out(self):
+    # def setup_video_out(self):
         # if self.episode_num is not None:
         #     self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.mp4'
         # else:
@@ -603,7 +603,7 @@ class FishDetector():
         # print(f"Video will be save to: {self.output_video_file}")
         return
         
-    def export_current_video(self):
+    # def export_current_video(self):
         # # make sure the `save_video_flag` is `False`
         # self.save_video_flag = False
         # # if hasattr(self, 'out') and self.out.isOpened():
@@ -661,8 +661,8 @@ class FishDetector():
 
 
     def minimun_pipeline(self):
-        if self.save_video_flag == True:
-            self.setup_video_out()
+        # if self.save_video_flag == True:
+        #     self.setup_video_out()
         if self.save_json_flag == True:
             self.setup_frame_stamps()
         while True:
@@ -707,10 +707,10 @@ class FishDetector():
 
         # 释放视频捕获对象并关闭所有窗口
         self.cap.release()
-        if self.save_video_flag:
+        # if self.save_video_flag:
             # self.out.release()
             # print(f"Video is being saved to: {self.output_video_file}")
-            self.export_current_video()
+            # self.export_current_video()
         
         if self.save_json_flag:
             self.export_frame_stamps()
@@ -738,11 +738,11 @@ class FishDetector():
             if self.my_anno_flag:
                 self.draw_interactive_rect()
 
-            if self.save_video_flag:
-                if self.mix_anno_flag:
-                    self.out.write(self.frame)
-                else:
-                    self.out.write(ori_frame)
+            # if self.save_video_flag:
+            #     if self.mix_anno_flag:
+            #         self.out.write(self.frame)
+            #     else:
+            #         self.out.write(ori_frame)
                     
             if self.my_anno_flag:
                 self.display_annotation()
