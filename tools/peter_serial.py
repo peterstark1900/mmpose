@@ -159,7 +159,7 @@ def main():
 
     my_action_dict_1 = {
         "motion_state": "CFE",
-        "amp": '20',
+        "amp": '00',
         "offset": '15',
         "omega": '10',
         "ratio": '10',

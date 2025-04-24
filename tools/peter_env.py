@@ -9,7 +9,7 @@ class Fish2DEnv():
 
         self.fish_detector =fish_detector
 
-        self.fish_control = SerialAction(serial_cfg)
+        # self.fish_control = SerialAction(serial_cfg)
 
         self.lambda_1 = reward_cfg["lambda_1"]
         self.lambda_2 = reward_cfg["lambda_2"]
@@ -25,20 +25,31 @@ class Fish2DEnv():
 
         self.counts += 1
         # execute the action
-        if action[0] == 0:
-            motion_state = 'CSE'
-        else:
-            motion_state = 'CFE'
-        self.fish_control.send(motion_state,action[1],action[2],action[3],action[4])
+        # if action[0] == 0:
+        #     motion_state = 'CSE'
+        # else:
+        #     motion_state = 'CFE'
+        # self.fish_control.send(motion_state,action[1],action[2],action[3],action[4])
+        action_list = action.flatten().tolist()
+        formatted_list = []
+        for i in range(len(action_list)):
+            action_list[i] = round(action_list[i])
+            if i == 1:
+                formatted_list.append( f"{action_list[i] + 30:02d}")
+            else:
+                formatted_list.append(f"{action_list[i]:02d}")
+
+        # self.fish_control.send('CFE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
 
         # calculate the reward
-        param_offset = action[2]
-        param_ratio = action[4] 
-        if param_offset > 0 and param_ratio > 0:
+        param_offset = action_list[1]
+        param_ratio = action_list[3] 
+        # param_ratio is 10 times of the real ratio
+        if param_offset > 0 and param_ratio > 10:
             reward_param = 10
-        elif param_offset < 0 and param_ratio < 1:
+        elif param_offset < 0 and param_ratio < 10:
             reward_param = 10
-        elif param_offset == 0 and param_ratio == 1:
+        elif param_offset == 0 and param_ratio == 10:
             reward_param = 10
         else:
             reward_param = -10
@@ -77,7 +88,14 @@ class Fish2DEnv():
         state = env.reset()
         '''
         # get the state for the agent
+        self.fish_detector.calculate_theta_current()
+        self.fish_detector.calculate_theta_dot()
+        self.fish_detector.detect_a_fish()
+        self.fish_detector.calculate_v_x()
+        self.fish_detector.calculate_v_y()
         state = self.fish_detector.get_state()
+        print(state)
+        print(type(state))
         self.counts = 0
         return state
 

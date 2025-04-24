@@ -485,9 +485,9 @@ class FishDetector():
         '''
         if self.theta_last is None:
             self.theta_last = self.theta_current
-            self.theta_dot = (self.theta_current - self.theta_last) / (1/self.fps)
+            self.theta_dot = (self.theta_current - self.theta_last) 
         else:
-            self.theta_dot = (self.theta_current - self.theta_last) / (1/self.fps)
+            self.theta_dot = (self.theta_current - self.theta_last) 
     def calculate_v_x(self):
         ''' calculate the velocity `v_x`
         `v_x` is the velocity of the fish in the x direction
@@ -495,7 +495,7 @@ class FishDetector():
         '''
         if self.p_hx_last is None:
             self.p_hx_last = self.p_hx
-        self.v_x = (self.p_hx - self.p_hx_last) / (1/self.fps)
+        self.v_x = (self.p_hx - self.p_hx_last) 
         self.p_hx_last = self.p_hx
 
     def calculate_v_y(self):
@@ -505,7 +505,7 @@ class FishDetector():
         '''
         if self.p_hy_last is None:
             self.p_hy_last = self.p_hy
-        self.v_y = (self.p_hy - self.p_hy_last) / (1/self.fps)
+        self.v_y = (self.p_hy - self.p_hy_last) 
         self.p_hy_last = self.p_hy
 
     def calculate_distance(self):
@@ -561,10 +561,11 @@ class FishDetector():
         '''
         get the observation space of the fish
         before using this function, please make sure that the following menber function is called:
-        `calculate_theta()`
+        `calculate_theta_current()`
         `calculate_theta_dot()`
         `detect_a_fish()`
         `calculate_v_x()`
+        `calculate_v_y()`
         '''
         return np.array([self.p_hx, \
                          self.p_hy, \
@@ -589,9 +590,9 @@ class FishDetector():
                 x1 <= self.body_pos[0] <= x2 and y1 <= self.body_pos[1] <= y2 and \
                 x1 <= self.joint_pos[0] <= x2 and y1 <= self.joint_pos[1] <= y2 and \
                 x1 <= self.tail_pos[0] <= x2 and y1 <= self.tail_pos[1] <= y2:
-                return False
-            else:
                 return True
+            else:
+                return False
         else:
             return True
         

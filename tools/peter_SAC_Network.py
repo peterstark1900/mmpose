@@ -19,22 +19,54 @@ class PolicyNetContinuous(torch.nn.Module):
     def forward(self, x):
         x = F.relu(self.fc1(x))
         mu = self.fc_mu(x)
-        std = F.softplus(self.fc_std(x))
+        std = F.softplus(self.fc_std(x))+1e-6  # 添加最小值保护
         dist = Normal(mu, std)
         normal_sample = dist.rsample()  # rsample()是重参数化采样
-        # log_prob = dist.log_prob(normal_sample)
+        log_prob = dist.log_prob(normal_sample)
         # action = torch.tanh(normal_sample)
         action = torch.tanh(normal_sample)
         log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
-        action = (action + 1) * 0.5  # Scale [0, 1] for positive-only actions
-        # Create scaling matrix based on your action space:
-        # [M_b(0-50), ω_b(0-30), B_b(-30-30), R_b(0-40)]
-        action = action * torch.tensor([50.0, 30.0, 60.0, 40.0]).to(x.device)
-        action = action - torch.tensor([0.0, 0.0, 30.0, 0.0]).to(x.device)  # Offset for B_b
-        # # 计算tanh_normal分布的对数概率密度
-        # log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
-        # action = action * self.action_bound
-        return action, log_prob
+        # action = (action + 1) * 0.5  # Scale [0, 1] for positive-only actions
+        # # Create scaling matrix based on your action space:
+        # # [M_b(0-50), w_b(0-30), B_b(-30-30), R_b(0-40)]
+        # action = action * torch.tensor([50.0, 30.0, 30.0, 40.0]).to(x.device)
+        # action = action - torch.tensor([0.0, 0.0, 30.0, 0.0]).to(x.device)  # Offset for B_b
+        # # # 计算tanh_normal分布的对数概率密度
+        # # log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
+        # # action = action * self.action_bound
+
+        # 解包动作分量进行单独处理
+        # M_b = action[:, 0]  # [-1, 1] → [0, 50]
+        # B_b = action[:, 1]  # [-1, 1] → [-30, 30]
+        # w_b = action[:, 2]  # [-1, 1] → [5, 30]
+        # R_b = action[:, 3]  # [-1, 1] → [1, 40]
+        # 使用弹性索引代替固定维度索引
+        M_b = action[..., 0]  
+        B_b = action[..., 1]
+        w_b = action[..., 2]
+        R_b = action[..., 3]
+
+        # 分量缩放和约束
+        M_b = (M_b + 1) * 25.0                        # [0, 50]
+        M_b = torch.clamp(M_b, 0.0, 50.0)
+        
+        B_b = B_b * 30.0                              # [-30, 30]
+        B_b = torch.clamp(B_b, -30.0, 30.0)
+
+        # w_b = (w_b + 1) * 15.0 + 1e-3                # (0, 30]
+        # w_b = torch.clamp(w_b, 1e-3, 30.0)
+
+        w_b = (w_b + 1) * 12.5 + 5.0 + 1e-3          # [5,30]
+        w_b = torch.clamp(w_b, 5.0 + 1e-3, 30.0)
+        
+        
+        
+        R_b = (R_b + 1) * 19.5+1.0 + 1e-3                # [1, 40]
+        R_b = torch.clamp(R_b, 1.0+1e-3, 40.0)
+
+        # 重新组合动作分量
+        scaled_action = torch.stack([M_b, B_b, w_b, R_b], dim=1)
+        return scaled_action, log_prob
 
 
 class QValueNetContinuous(torch.nn.Module):
@@ -85,10 +117,17 @@ class SACContinuous:
         self.tau = tau
         self.device = device
 
+    # def take_action(self, state):
+    #     state = torch.tensor([state], dtype=torch.float).to(self.device)
+    #     action = self.actor(state)[0]
+    #     return [action.item()]
     def take_action(self, state):
-        state = torch.tensor([state], dtype=torch.float).to(self.device)
-        action = self.actor(state)[0]
-        return [action.item()]
+        state = torch.as_tensor(np.array(state), 
+                            dtype=torch.float32,
+                            device=self.device).unsqueeze(0)
+        with torch.no_grad():
+            action = self.actor(state)[0]
+        return action.cpu().numpy()
 
     def calc_target(self, rewards, next_states, dones):  # 计算目标Q值
         next_actions, log_prob = self.actor(next_states)
@@ -117,8 +156,23 @@ class SACContinuous:
                                    dtype=torch.float).to(self.device)
         dones = torch.tensor(transition_dict['dones'],
                              dtype=torch.float).view(-1, 1).to(self.device)
+        # # 修正动作张量的维度处理
+        # actions = torch.tensor(transition_dict['actions'],
+        #                      dtype=torch.float).to(self.device)
+        
+        # # 确保状态张量的维度正确
+        # states = torch.tensor(transition_dict['states'],
+        #                      dtype=torch.float).unsqueeze(1).to(self.device)  # 添加批次维度
+        # next_states = torch.tensor(transition_dict['next_states'],
+        #                           dtype=torch.float).unsqueeze(1).to(self.device)
+        
+        # # 修正其他张量的维度
+        # rewards = torch.tensor(transition_dict['rewards'],
+        #                       dtype=torch.float).view(-1, 1).to(self.device)
+        # dones = torch.tensor(transition_dict['dones'],
+        #                     dtype=torch.float).view(-1, 1).to(self.device)
         # 和之前章节一样,对倒立摆环境的奖励进行重塑以便训练
-        rewards = (rewards + 8.0) / 8.0
+        # rewards = (rewards + 8.0) / 8.0
 
         # 更新两个Q网络
         td_target = self.calc_target(rewards, next_states, dones)
