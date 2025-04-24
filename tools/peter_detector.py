@@ -54,7 +54,7 @@ class FishDetector():
         self.detect_type = capture_cfg.get('detect_type')
         if self.detect_type == 'camera':
             # self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
-            self.cap = cv2.VideoCapture(1)
+            self.cap = cv2.VideoCapture(0)
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             self.cap.set(cv2.CAP_PROP_FPS, 30)
@@ -74,30 +74,31 @@ class FishDetector():
         # Step 2: Initialize VideoWriter object
         if writer_cfg is not None:
             self.episode_num = None
-            # # video configuration
-            # if writer_cfg.get('save_video_flag') == False:
-            #     print("Warning: Save flag is False, no video will be saved")
-            #     self.save_video_flag = False
-            # if writer_cfg.get('video_output_path') is None:
-            #     print("Warning: Output path is None, no video will be saved")
-            #     self.save_video_flag = False
-            # if writer_cfg.get('save_video_flag') == True and writer_cfg.get('video_output_path') is not None:
-            #     self.save_video_flag = True
-            #     self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
-            #     # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
-            #     self.fps = 8
-            #     print(self.fps)
-            #     # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            #     self.width = 1920
-            #     # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            #     self.height = 1080
-            #     self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # encoder
-            #     self.video_output_path = writer_cfg.get('video_output_path')
-            #     # if the output_video_file folder does not exist, create it
-            #     self.video_output_path = os.path.join(os.getcwd(),writer_cfg.get('video_output_path'))
-            #     if not os.path.exists(os.path.dirname(self.video_output_path)):
-            #         os.makedirs(os.path.dirname(self.video_output_path))
-            #         print("Output video folder created!")
+            # video configuration
+            if writer_cfg.get('save_video_flag') == False:
+                print("Warning: Save flag is False, no video will be saved")
+                self.save_video_flag = False
+            if writer_cfg.get('video_output_path') is None:
+                print("Warning: Output path is None, no video will be saved")
+                self.save_video_flag = False
+            if writer_cfg.get('save_video_flag') == True and writer_cfg.get('video_output_path') is not None:
+                self.save_video_flag = True
+                self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
+                # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+                self.fps = 30
+                print(self.fps)
+                # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                self.width = 1920
+                # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                self.height = 1080
+                # self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # encoder
+                self.fourcc = cv2.VideoWriter_fourcc('M','J','P','G')  # mjpg encoder
+                self.video_output_path = writer_cfg.get('video_output_path')
+                # if the output_video_file folder does not exist, create it
+                self.video_output_path = os.path.join(os.getcwd(),writer_cfg.get('video_output_path'))
+                if not os.path.exists(os.path.dirname(self.video_output_path)):
+                    os.makedirs(os.path.dirname(self.video_output_path))
+                    print("Output video folder created!")
             
             # json configuration
             if writer_cfg.get('save_json_flag') == False:
@@ -408,17 +409,17 @@ class FishDetector():
 
 
                 # 绘制头部关键点
-                cv2.circle(self.frame, head, 5, (0, 255, 0), -1)
+                cv2.circle(self.frame, head, 5, (0, 0, 255), -1)
                 # 绘制身体关键点
-                cv2.circle(self.frame, body, 5, (0, 255, 0), -1)
+                cv2.circle(self.frame, body, 5, (0, 51, 102), -1)
                 # 绘制关节关键点
                 cv2.circle(self.frame, joint, 5, (0, 255, 0), -1)
                 # 绘制尾部关键点
-                cv2.circle(self.frame, tail, 5, (0, 0, 255), -1)
+                cv2.circle(self.frame, tail, 5, (204, 0, 102), -1)
                 # 用线段连接关键点
-                cv2.line(self.frame, head, body, (255, 0, 0), 2)
-                cv2.line(self.frame, body, joint, (255, 0, 0), 2)
-                cv2.line(self.frame, joint, tail, (255, 0, 0), 2)
+                cv2.line(self.frame, head, body, (0, 0, 255), 2)
+                cv2.line(self.frame, body, joint, (0, 0, 255), 2)
+                cv2.line(self.frame, joint, tail, (0, 0, 255), 2)
   
     def draw_a_fish_in_frame(self):
         # # 绘制头部关键点
@@ -594,35 +595,35 @@ class FishDetector():
     def setup_episode_num(self,episode_num):
         self.episode_num = episode_num
         print('Episode number is set to: ',self.episode_num)
-    # def setup_video_out(self):
-        # if self.episode_num is not None:
-        #     self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.mp4'
-        # else:
-        #     self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
-        # self.out = cv2.VideoWriter(self.output_video_file,self.fourcc,self.fps,(self.width,self.height))
-        # print(f"Video will be save to: {self.output_video_file}")
+    def setup_video_out(self):
+        if self.episode_num is not None:
+            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.mp4'
+        else:
+            self.output_video_file = self.video_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.mp4'
+        self.out = cv2.VideoWriter(self.output_video_file,self.fourcc,self.fps,(self.width,self.height))
+        print(f"Video will be save to: {self.output_video_file}")
         return
         
-    # def export_current_video(self):
-        # # make sure the `save_video_flag` is `False`
-        # self.save_video_flag = False
-        # # if hasattr(self, 'out') and self.out.isOpened():
-        # #     self.out.release()
-        # #     print(f"Video has saved to: {self.output_video_file}")
-        # # else:
-        # #     print("Fail to export video.")
+    def export_current_video(self):
+        # make sure the `save_video_flag` is `False`
+        self.save_video_flag = False
+        # if hasattr(self, 'out') and self.out.isOpened():
+        #     self.out.release()
+        #     print(f"Video has saved to: {self.output_video_file}")
+        # else:
+        #     print("Fail to export video.")
 
-        # # self.out.release()
-        # sleep_count = 0
-        # while not self.out.isOpened():
-        #     print("Waiting for the video to be saved...")
-        #     time.sleep(1)
-        #     sleep_count += 1
-        #     if sleep_count > 10:
-        #         print("Fail to export video.")
-        #         return
-        # self.out.release()    # Release the VideoWriter object
-        # print(f"Video has saved to: {self.output_video_file}")
+        # self.out.release()
+        sleep_count = 0
+        while not self.out.isOpened():
+            print("Waiting for the video to be saved...")
+            time.sleep(1)
+            sleep_count += 1
+            if sleep_count > 10:
+                print("Fail to export video.")
+                return
+        self.out.release()    # Release the VideoWriter object
+        print(f"Video has saved to: {self.output_video_file}")
         return 
 
     def setup_frame_stamps(self):
@@ -764,45 +765,3 @@ class FishDetector():
         cv2.destroyAllWindows()    
 
 
-class Visualizer():
-    def __init__(self, file_path,file_type):
-        self.file_type = file_type
-        if self.file_type == 'json':
-            self.file_path = file_path
-            with open(self.file_path, 'r') as f:
-                self.data = json.load(f)
-    
-    def show_animation(self):
-        # 创建一个空白窗口
-        cv2.namedWindow('Keypoints Visualization', cv2.WINDOW_NORMAL)
-
-        for frame_stamp in self.data['frame_stamps']:
-            # 创建一个空白图像
-            frame = np.zeros((1080, 1920, 3), dtype=np.uint8)* 255
-            head = frame_stamp['head']
-            body = frame_stamp['body']
-            joint = frame_stamp['joint']
-            tail = frame_stamp['tail']
-            # 绘制头部关键点
-            cv2.circle(frame, head, 5, (0, 255, 0), -1)
-            # 绘制身体关键点
-            cv2.circle(frame, body, 5, (0, 255, 0), -1)
-            # 绘制关节关键点
-            cv2.circle(frame, joint, 5, (0, 255, 0), -1)
-            # 绘制尾部关键点
-            cv2.circle(frame, tail, 5, (0, 0, 255), -1)
-            # 用线段连接关键点
-            cv2.line(frame, head, body, (255, 0, 0), 2)
-            cv2.line(frame, body, joint, (255, 0, 0), 2)
-            cv2.line(frame, joint, tail, (255, 0, 0), 2)
-
-            # 显示图像
-            cv2.imshow('Keypoints Visualization', frame)
-            cv2.waitKey(10)
-
-            # 清空图像
-            frame.fill(0)
-
-            # # 等待一段时间以显示每一帧
-            # if cv2.waitKey(500) & 0xFF == ord('q'):
-            #     break

@@ -61,6 +61,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                         done = True
                         print("Episode steps reach the max!")
                         episode_return = counts
+                    # time.sleep(1)
                     # if detector.is_in_rect():
                     #     # debuging, disable this line temporarily 
                     #     # done = True 
