@@ -220,6 +220,7 @@ class FishDetector():
         self.end_time = None
         self.duration = None
         self.state_stamps = []
+        self.state_reset_flag = True
 
         self.frame_stamps= []
         self.time_stamp = None
@@ -554,8 +555,11 @@ class FishDetector():
             back_len = len(self.body_pos_list)
             print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
 
+
+        print("start time: ",self.start_time)
+        print("end time: ", self.end_time)
         self.duration = self.end_time - self.start_time
-        if self.duration == 0:
+        if self.duration.total_seconds() == 0:
             print("Error: duration is 0, please check the time stamp")
             exit()
             
@@ -584,8 +588,10 @@ class FishDetector():
         pb_end_pos = (pb_end_pos[0] - origin_x, origin_y - pb_end_pos[1])
 
         # calculate the angle `theta`
-        vec_initial = np.array(ph_start_pos[0] - pb_start_pos[0], ph_start_pos[1] - pb_start_pos[1])
-        vec_end = np.array(ph_end_pos[0] - pb_end_pos[0], ph_end_pos[1] - pb_end_pos[1])
+        # vec_initial = np.array(ph_start_pos[0] - pb_start_pos[0], ph_start_pos[1] - pb_start_pos[1])
+        vec_initial = np.array((ph_start_pos[0] - pb_start_pos[0], ph_start_pos[1] - pb_start_pos[1]))
+        # vec_end = np.array(ph_end_pos[0] - pb_end_pos[0], ph_end_pos[1] - pb_end_pos[1])
+        vec_end = np.array((ph_end_pos[0] - pb_end_pos[0], ph_end_pos[1] - pb_end_pos[1]))
         # cos_theta = np.dot(vec_initial, vec_end) / (np.linalg.norm(vec_initial) * np.linalg.norm(vec_end))
         # theta_avg = np.arccos(cos_theta)
         initial_rad = np.arctan2(vec_initial[1], vec_initial[0])
@@ -593,13 +599,13 @@ class FishDetector():
         theta_avg = np.degrees(end_rad) - np.degrees(initial_rad)
 
         # calculate the average omega
-        omeag_avg = theta_avg/self.duration
+        omeag_avg = theta_avg/self.duration.total_seconds()
 
         # calculate the average distance
         norm_end = np.linalg.norm(vec_end)
         displacement_avg = norm_end*np.cos(theta_avg)
         # calculate the average velocity
-        v_avg = displacement_avg/self.duration
+        v_avg = displacement_avg/self.duration.total_seconds()
 
         # update the observation space
         self.p_hx_avg = ph_end_pos[0]
@@ -776,8 +782,9 @@ class FishDetector():
         self.keypoint_stamp = {}
 
     def update_pos_list(self):
-        if self.head_pos is None or self.body_pos is None:
+        if  self.state_reset_flag:
             self.start_time = self.time_stamp
+            self.state_reset_flag = False
         self.head_pos_list.append(self.head_pos)
         self.body_pos_list.append(self.body_pos)
         self.end_time = self.time_stamp
@@ -786,9 +793,9 @@ class FishDetector():
         state_stamp = {
             'head_pos_list': self.head_pos_list,
             'body_pos_list': self.body_pos_list,
-            'duration': self.duration,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
+            'duration': self.duration.total_seconds(),
+            'start_time': str(self.start_time),
+            'end_time': str(self.end_time),
             'p_hx_avg': self.p_hx_avg,
             'p_hy_avg': self.p_hy_avg,
             'p_bx_avg': self.p_bx_avg,
@@ -803,9 +810,10 @@ class FishDetector():
         self.state_stamps.append(state_stamp)  
         self.head_pos_list = []
         self.body_pos_list = []
-        self.duration = 0
+        self.duration = None
         self.start_time = None
         self.end_time = None
+        self.state_reset_flag = True
 
     def export_frame_stamps(self):
         # make sure the `save_json_flag` is `False`
@@ -912,10 +920,10 @@ class FishDetector():
                 self.detect_a_fish()
                 # 进行绘制
                 self.draw_a_fish_in_frame()
-                if self.save_json_flag:
-                    self.update_frame_stamps()
-                    self.reset_key_points()
-                    self.update_pos_list()
+                # if self.save_json_flag:
+                self.update_frame_stamps()
+                self.reset_key_points()
+                self.update_pos_list()
 
             if self.my_anno_flag:
                 self.draw_interactive_rect()

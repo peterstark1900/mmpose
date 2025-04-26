@@ -63,7 +63,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                         print("Episode steps reach the max!")
                         episode_return = counts
                         break
-                    time.sleep(1)
+                    time.sleep(2)
                     if not detector.is_in_rect():
                         # debuging, disable this line temporarily 
                         print("Fish is out of the region!")
@@ -92,8 +92,9 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                     
                         # print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(distance_current)+' Theta: '+str(theta_current)+' reward: '+ str(reward), end="")
 
-                        detector.set_state_flag(True)
+                        detector.setup_get_state_flag(True)
                         temp_array = detector.get_state(2,2)
+                        detector.reset_pos_list()
                         print("\n p_hx_avg: "+str(temp_array[0])\
                             +"\n p_hy_avg: "+str(temp_array[1])\
                             +"\n p_bx_avg: "+str(temp_array[2])\
@@ -101,9 +102,10 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                             +"\n theta_avg: "+str(temp_array[4])\
                             +"\n omega_avg: "+str(temp_array[5])\
                             +"\n displacement_avg: "+str(temp_array[6])\
-                            +"\n velocity_avg: " +str(temp_array[7]), \
-                            +"\n l_x: " +str(temp_array[8]), \
+                            +"\n velocity_avg: " +str(temp_array[7])\
+                            +"\n l_x: " +str(temp_array[8])\
                             +"\n l_y: " +str(temp_array[9]))
+                        detector.setup_get_state_flag(False)
 
                     # print('\r counts:  %d'%(counts), end="")
                     # time.sleep(sleep_time)

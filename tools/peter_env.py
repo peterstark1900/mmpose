@@ -17,6 +17,10 @@ class Fish2DEnv():
         self.counts = 0
         self.max_episode_steps = 1000
 
+        self.theta_reward_coeff = 0.1  # 奖励系数，可调整
+        self.last_theta_avg = None
+        self.theta_trend = 0  # 趋势标记：1递增，-1递减，0初始状态
+
 
     def step(self, action):
         '''
@@ -56,7 +60,13 @@ class Fish2DEnv():
 
         if self.fish_detector.is_in_rect():
             done = True
-            reward_pos = -10
+            if self.last_theta_avg is not None:
+                if abs(self.last_theta_avg) > 90:
+                    reward_pos = 10
+                else:
+                    reward_pos = -10
+            else:
+                reward_pos = -10
             reward = reward_pos 
         else:
             # self.fish_detector.calculate_distance()
@@ -86,7 +96,22 @@ class Fish2DEnv():
             displacement_avg = temp_array[6]
             velocity_avg = temp_array[7]
 
-            # reward = reward_pos + reward_appr + reward_theta 
+            if self.last_theta_avg is not None:
+                current_direction = 1 if theta_avg > self.last_theta_avg else (-1 if theta_avg < self.last_theta_avg else 0)
+                
+                if current_direction != 0:
+                    if current_direction == self.theta_trend:
+                        self.theta_reward_coeff *= 1.2  # 趋势持续时奖励递增
+                    else:
+                        self.theta_reward_coeff *= 0.8  # 趋势改变时奖励递减
+                    self.theta_trend = current_direction
+            else:
+                self.theta_reward_coeff = 0.1  # 初始化
+    
+            theta_reward = self.theta_reward_coeff
+            self.last_theta_avg = theta_avg  # 记录当前值供下次使用
+
+            reward = reward_pos + theta_reward
             
         return self.fish_detector.get_state(), reward, done, {}
     
