@@ -157,20 +157,33 @@ class FishDetector():
                 cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
                 cv2.setMouseCallback(self.window_name, self.mouse_callback)
                 # observation space
-                self.p_hx = None
-                self.p_hy = None
-                self.p_bx = None
-                self.p_by = None
-                self.v_x = None
-                self.v_y = None
-                self.theta_dot = None
+                # self.p_hx = None
+                # self.p_hy = None
+                # self.p_bx = None
+                # self.p_by = None
+                # self.v_x = None
+                # self.v_y = None
+                # self.theta_dot = None
 
-                self.theta_current = None
-                self.theta_last = None
-                self.p_hx_last = None
-                self.p_hy_last = None
-                self.distance_current = None
-                self.distance_last = None
+                # self.theta_current = None
+                # self.theta_last = None
+                # self.p_hx_last = None
+                # self.p_hy_last = None
+                # self.distance_current = None
+                # self.distance_last = None
+
+                self.p_hx_avg = None
+                self.p_hy_avg = None
+                self.p_bx_avg = None
+                self.p_by_avg = None
+                self.theta_avg = None
+                self.omega_avg = None
+                self.displacement_avg = None
+                self.velocity_avg = None
+
+                self.l_x = None
+                self.l_y = None
+
 
                 print('Annotation object is initialized!')
 
@@ -200,10 +213,20 @@ class FishDetector():
         self.real_num = mmpose_cfg.get('my_real_num')
 
         self.key_points = []
+        self.head_pos_list = []
+        self.body_pos_list = []
+        self.get_state_flag = False
+        self.start_time = None
+        self.end_time = None
+        self.duration = None
+        self.state_stamps = []
+
         self.frame_stamps= []
+        self.time_stamp = None
         self.time_stamps = []
         self.keypoint_stamp = {}
         self.frame = None
+        
         self.head_pos = None
         self.body_pos = None
         self.joint_pos = None
@@ -220,6 +243,7 @@ class FishDetector():
         for result in result_generator:
             predictions = result['predictions'][0]
             self.key_points.append(predictions.pred_instances.keypoints)
+        self.time_stamp = datetime.datetime.now()
 
     def detect_a_fish(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
@@ -230,12 +254,13 @@ class FishDetector():
         self.body_pos = tuple(map(int, key_points[0][1]))
         self.joint_pos = tuple(map(int, key_points[0][2]))
         self.tail_pos = tuple(map(int, key_points[0][3]))
-        if self.my_anno_flag == True:
-            # update observation space
-            self.p_hx = self.head_pos[0]
-            self.p_hy = self.head_pos[1]
-            self.p_bx = self.body_pos[0]
-            self.p_by = self.body_pos[1]
+        self.time_stamp = datetime.datetime.now()
+        # if self.my_anno_flag == True:
+        #     # update observation space
+        #     self.p_hx = self.head_pos[0]
+        #     self.p_hy = self.head_pos[1]
+        #     self.p_bx = self.body_pos[0]
+        #     self.p_by = self.body_pos[1]
 
         # self.head_pos = key_points[0][0]
         # self.body_pos = key_points[0][1]
@@ -458,11 +483,6 @@ class FishDetector():
                 "joint": self.joint_pos,
                 "tail": self.tail_pos
                 }
-
-
-    def reset_key_points(self):
-        self.key_points = []
-        self.keypoint_stamp = {}
     
     ####################calculate operation#####################
     def calculate_theta_current(self):
@@ -515,8 +535,91 @@ class FishDetector():
         if self.distance_current is not None:
             self.distance_last = self.distance_current
         self.distance_current = np.sqrt((self.head_pos[0] - self.target_x)**2 + (self.head_pos[1] - self.target_y)**2)   
+
+    def calculate_state(self, front_len, back_len):
+        ''' transform the keypoints to the target coordinate system
+        this operation is only valid when there is only one fish in the frame
+        '''
+
+        if front_len>len(self.head_pos_list):
+            front_len = len(self.head_pos_list)
+            print("Warning: front_len is larger than the length of the list, set front_len to the length of the list")
+        if back_len>len(self.head_pos_list):
+            back_len = len(self.head_pos_list)
+            print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
+        if front_len>len(self.body_pos_list):
+            front_len = len(self.body_pos_list)
+            print("Warning: front_len is larger than the length of the list, set front_len to the length of the list")
+        if back_len>len(self.body_pos_list):
+            back_len = len(self.body_pos_list)
+            print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
+
+        self.duration = self.end_time - self.start_time
+        if self.duration == 0:
+            print("Error: duration is 0, please check the time stamp")
+            exit()
+            
+        
+        x1, y1, x2, y2 = self.current_rect
+        # set the left-bottom point as the origin
+        origin_x = min(x1, x2)
+        origin_y = max(y1, y2)
+
+        h_start = self.head_pos_list[:front_len]
+        ph_start_pos = (sum(x for x, y in h_start)/2, sum(y for x, y in h_start)/2)
+
+        b_start = self.body_pos_list[:front_len]
+        pb_start_pos = (sum(x for x, y in b_start)/2, sum(y for x, y in b_start)/2)
+
+        h_end = self.head_pos_list[-back_len:]
+        ph_end_pos = (sum(x for x, y in h_end)/2, sum(y for x, y in h_end)/2)
+
+        b_end = self.body_pos_list[-back_len:]
+        pb_end_pos = (sum(x for x, y in b_end)/2, sum(y for x, y in b_end)/2)
+
+        # transform the keypoints to the target coordinate system
+        ph_start_pos = (ph_start_pos[0] - origin_x, origin_y - ph_start_pos[1])
+        pb_start_pos = (pb_start_pos[0] - origin_x, origin_y - pb_start_pos[1])
+        ph_end_pos = (ph_end_pos[0] - origin_x, origin_y - ph_end_pos[1])
+        pb_end_pos = (pb_end_pos[0] - origin_x, origin_y - pb_end_pos[1])
+
+        # calculate the angle `theta`
+        vec_initial = np.array(ph_start_pos[0] - pb_start_pos[0], ph_start_pos[1] - pb_start_pos[1])
+        vec_end = np.array(ph_end_pos[0] - pb_end_pos[0], ph_end_pos[1] - pb_end_pos[1])
+        # cos_theta = np.dot(vec_initial, vec_end) / (np.linalg.norm(vec_initial) * np.linalg.norm(vec_end))
+        # theta_avg = np.arccos(cos_theta)
+        initial_rad = np.arctan2(vec_initial[1], vec_initial[0])
+        end_rad = np.arctan2(vec_end[1], vec_end[0])
+        theta_avg = np.degrees(end_rad) - np.degrees(initial_rad)
+
+        # calculate the average omega
+        omeag_avg = theta_avg/self.duration
+
+        # calculate the average distance
+        norm_end = np.linalg.norm(vec_end)
+        displacement_avg = norm_end*np.cos(theta_avg)
+        # calculate the average velocity
+        v_avg = displacement_avg/self.duration
+
+        # update the observation space
+        self.p_hx_avg = ph_end_pos[0]
+        self.p_hy_avg = ph_end_pos[1]
+        self.p_bx_avg = pb_end_pos[0]
+        self.p_by_avg = pb_end_pos[1]
+        self.theta_avg = theta_avg
+        self.omega_avg = omeag_avg
+        self.displacement_avg = displacement_avg
+        self.velocity_avg = v_avg
+
+        self.l_x = max(x1, x2) - min(x1, x2)
+        self.l_y = max(y1, y2) - min(y1, y2)
+
+
+
     ###################get and set operation###################
 
+    def setup_get_state_flag(self,flag):
+        self.get_state_flag = flag
     def set_save_state(self,flag):
         # self.save_video_flag = flag
         self.save_json_flag = flag
@@ -557,23 +660,45 @@ class FishDetector():
         '''
         return self.theta_dot
     
-    def get_state(self):
+    # def get_state(self):
+    #     '''
+    #     get the observation space of the fish
+    #     before using this function, please make sure that the following menber function is called:
+    #     `calculate_theta_current()`
+    #     `calculate_theta_dot()`
+    #     `detect_a_fish()`
+    #     `calculate_v_x()`
+    #     `calculate_v_y()`
+    #     '''
+    #     return np.array([self.p_hx, \
+    #                      self.p_hy, \
+    #                      self.p_bx, \
+    #                      self.p_by, \
+    #                      self.v_x, \
+    #                      self.v_y, \
+    #                      self.theta_dot])
+
+    def get_state(self,front_len, back_len):
         '''
         get the observation space of the fish
-        before using this function, please make sure that the following menber function is called:
-        `calculate_theta_current()`
-        `calculate_theta_dot()`
-        `detect_a_fish()`
-        `calculate_v_x()`
-        `calculate_v_y()`
         '''
-        return np.array([self.p_hx, \
-                         self.p_hy, \
-                         self.p_bx, \
-                         self.p_by, \
-                         self.v_x, \
-                         self.v_y, \
-                         self.theta_dot])
+        # calculate the state
+        # self.get_state_flag = True
+        self.calculate_state(front_len, back_len)
+        # self.get_state_flag = False
+        # update the record
+        
+        return np.array([self.p_hx_avg, \
+                         self.p_hy_avg, \
+                         self.p_bx_avg, \
+                         self.p_by_avg, \
+                         self.theta_avg, \
+                         self.omega_avg, \
+                         self.displacement_avg, \
+                         self.velocity_avg, \
+                         self.l_x, \
+                         self.l_y])
+    
     
     def is_in_rect(self):
         '''
@@ -645,7 +770,43 @@ class FishDetector():
         print(f"Json will be save to: {self.output_json_file}") 
     def update_frame_stamps(self):
         self.frame_stamps.append(self.keypoint_stamp)
-        self.time_stamps.append(str(datetime.datetime.now()))   
+        self.time_stamps.append(str(self.time_stamp)) 
+    def reset_key_points(self):
+        self.key_points = []
+        self.keypoint_stamp = {}
+
+    def update_pos_list(self):
+        if self.head_pos is None or self.body_pos is None:
+            self.start_time = self.time_stamp
+        self.head_pos_list.append(self.head_pos)
+        self.body_pos_list.append(self.body_pos)
+        self.end_time = self.time_stamp
+
+    def reset_pos_list(self):
+        state_stamp = {
+            'head_pos_list': self.head_pos_list,
+            'body_pos_list': self.body_pos_list,
+            'duration': self.duration,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'p_hx_avg': self.p_hx_avg,
+            'p_hy_avg': self.p_hy_avg,
+            'p_bx_avg': self.p_bx_avg,
+            'p_by_avg': self.p_by_avg,
+            'theta_avg': self.theta_avg,
+            'omega_avg': self.omega_avg,
+            'displacement_avg': self.displacement_avg,
+            'velocity_avg': self.velocity_avg,
+            'l_x': self.l_x,
+            'l_y': self.l_y 
+        }
+        self.state_stamps.append(state_stamp)  
+        self.head_pos_list = []
+        self.body_pos_list = []
+        self.duration = 0
+        self.start_time = None
+        self.end_time = None
+
     def export_frame_stamps(self):
         # make sure the `save_json_flag` is `False`
         self.save_json_flag = False
@@ -661,6 +822,7 @@ class FishDetector():
         data = {
             "frame_stamps": self.frame_stamps,
             "time_stamps": self.time_stamps,
+            "state_stamps": self.state_stamps,
             "info": info
         }
         
@@ -732,7 +894,13 @@ class FishDetector():
             print("Please set the target point first!")
             exit()
         while True:
-            # 读取视频的每一帧
+            if self.detect_type == 'camera':
+                # 按 'q' 键退出
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break    
+                if self.exit_flag:
+                    break
+
             ret, ori_frame = self.cap.read()
             if not ret:
                 print("No video streaming. Exiting...")
@@ -744,6 +912,10 @@ class FishDetector():
                 self.detect_a_fish()
                 # 进行绘制
                 self.draw_a_fish_in_frame()
+                if self.save_json_flag:
+                    self.update_frame_stamps()
+                    self.reset_key_points()
+                    self.update_pos_list()
 
             if self.my_anno_flag:
                 self.draw_interactive_rect()
@@ -759,15 +931,14 @@ class FishDetector():
             # 显示帧
             cv2.imshow(self.window_name, self.frame)
             cv2.waitKey(1)
-            if self.save_json_flag:
-                self.update_frame_stamps()
-            self.reset_key_points()
-            if self.detect_type == 'camera':
-                # 按 'q' 键退出
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break    
-                if self.exit_flag:
-                    break
+            
+            if self.get_state_flag == True:
+                while self.get_state_flag:
+                    print("\r Please wait for the state to be calculated...", end="")
+                
+                self.reset_pos_list()
+                self.get_state_flag = False
+                
 
             # 释放视频捕获对象并关闭所有窗口
         self.cap.release()

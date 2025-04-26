@@ -39,47 +39,54 @@ class Fish2DEnv():
             else:
                 formatted_list.append(f"{action_list[i]:02d}")
 
-        # self.fish_control.send('CFE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
+        # self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
 
         # calculate the reward
-        param_offset = action_list[1]
-        param_ratio = action_list[3] 
-        # param_ratio is 10 times of the real ratio
-        if param_offset > 0 and param_ratio > 10:
-            reward_param = 10
-        elif param_offset < 0 and param_ratio < 10:
-            reward_param = 10
-        elif param_offset == 0 and param_ratio == 10:
-            reward_param = 10
-        else:
-            reward_param = -10
+        # param_offset = action_list[1]
+        # param_ratio = action_list[3] 
+        # # param_ratio is 10 times of the real ratio
+        # if param_offset > 0 and param_ratio > 10:
+        #     reward_param = 10
+        # elif param_offset < 0 and param_ratio < 10:
+        #     reward_param = 10
+        # elif param_offset == 0 and param_ratio == 10:
+        #     reward_param = 10
+        # else:
+        #     reward_param = -10
 
         if self.fish_detector.is_in_rect():
             done = True
             reward_pos = -10
-            reward = reward_pos + reward_param
+            reward = reward_pos 
         else:
-            self.fish_detector.calculate_distance()
-            distance_current = self.fish_detector.get_distance_current()
-            distance_last = self.fish_detector.get_distance_last()
-            if distance_current <= self.reach_threshold:
-                done = True
-                reward_pos = 10
-            else:
-                done = False
-                reward_pos = 0
+            # self.fish_detector.calculate_distance()
+            # distance_current = self.fish_detector.get_distance_current()
+            # distance_last = self.fish_detector.get_distance_last()
+            # if distance_current <= self.reach_threshold:
+            #     done = True
+            #     reward_pos = 10
+            # else:
+            #     done = False
+            #     reward_pos = 0
             
-            reward_appr = (distance_current - distance_last)*self.lambda_2
-            self.fish_detector.calculate_theta_current()
-            theta_current = self.fish_detector.get_theta_current()
-            self.fish_detector.calculate_theta_dot()
-            dot_theta = self.fish_detector.get_theta_dot()
-            reward_theta = -dot_theta*self.lambda_1
+            # reward_appr = (distance_current - distance_last)*self.lambda_2
+            # self.fish_detector.calculate_theta_current()
+            # theta_current = self.fish_detector.get_theta_current()
+            # self.fish_detector.calculate_theta_dot()
+            # dot_theta = self.fish_detector.get_theta_dot()
+            # reward_theta = -dot_theta*self.lambda_1
             
-            if self.counts >= self.max_episode_steps:
-                done = True
-                print("Episode steps reach the max!")
-            reward = reward_pos + reward_appr + reward_theta + reward_param 
+            # if self.counts >= self.max_episode_steps:
+            #     done = True
+            #     print("Episode steps reach the max!")
+            self.fish_detector.setup_get_state_flag(False)
+            temp_array = self.fish_detector.get_state()
+            theta_avg = temp_array[4]
+            omega_avg = temp_array[5]
+            displacement_avg = temp_array[6]
+            velocity_avg = temp_array[7]
+
+            # reward = reward_pos + reward_appr + reward_theta 
             
         return self.fish_detector.get_state(), reward, done, {}
     
@@ -88,11 +95,12 @@ class Fish2DEnv():
         state = env.reset()
         '''
         # get the state for the agent
-        self.fish_detector.calculate_theta_current()
-        self.fish_detector.calculate_theta_dot()
-        self.fish_detector.detect_a_fish()
-        self.fish_detector.calculate_v_x()
-        self.fish_detector.calculate_v_y()
+        # self.fish_detector.calculate_theta_current()
+        # self.fish_detector.calculate_theta_dot()
+        # self.fish_detector.detect_a_fish()
+        # self.fish_detector.calculate_v_x()
+        # self.fish_detector.calculate_v_y()
+        self.fish_detector.setup_get_state_flag(False)
         state = self.fish_detector.get_state()
         print(state)
         print(type(state))

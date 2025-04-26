@@ -50,8 +50,11 @@ class PolicyNetContinuous(torch.nn.Module):
         M_b = (M_b + 1) * 25.0                        # [0, 50]
         M_b = torch.clamp(M_b, 0.0, 50.0)
         
-        B_b = B_b * 30.0                              # [-30, 30]
-        B_b = torch.clamp(B_b, -30.0, 30.0)
+        # B_b = B_b * 30.0                              # [-30, 30]
+        # B_b = torch.clamp(B_b, -30.0, 30.0)
+
+        B_b = (B_b + 1) * 12.5 + 5.0               # [-1,1] → [5,30]
+        B_b = torch.clamp(B_b, 5.0, 30.0)
 
         # w_b = (w_b + 1) * 15.0 + 1e-3                # (0, 30]
         # w_b = torch.clamp(w_b, 1e-3, 30.0)
@@ -61,8 +64,11 @@ class PolicyNetContinuous(torch.nn.Module):
         
         
         
-        R_b = (R_b + 1) * 19.5+1.0 + 1e-3                # [1, 40]
-        R_b = torch.clamp(R_b, 1.0+1e-3, 40.0)
+        # R_b = (R_b + 1) * 19.5+1.0 + 1e-3                # [1, 40]
+        # R_b = torch.clamp(R_b, 1.0+1e-3, 40.0)
+
+        R_b = (R_b + 1) * 15.0 + 10.0 + 1e-3          # [-1,1] → [10,40]
+        R_b = torch.clamp(R_b, 10.0 + 1e-3, 40.0)
 
         # 重新组合动作分量
         scaled_action = torch.stack([M_b, B_b, w_b, R_b], dim=1)
