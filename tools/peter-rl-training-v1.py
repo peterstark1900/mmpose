@@ -26,101 +26,101 @@ import queue
 def rl_train(detector, serial_cfg = None, reward_cfg = None):
 
     #############################  debug region  #######################
-    i_episode = 0
-    lambda_1 = 1
-    lambda_2 = 1
-    reach_threshold = 0.05
-    num_episodes = 20
-    # transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
+    # i_episode = 0
+    # lambda_1 = 1
+    # lambda_2 = 1
+    # reach_threshold = 0.05
+    # num_episodes = 20
+    # # transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
     
-    # while True:
-    return_list = []
-    max_episode_steps = 30
-    sleep_time = 1
-    # for i in range(10):
-    #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
-    #         for i_episode in range(int(num_episodes/10)):
-    #             
-    with tqdm(total=num_episodes) as pbar:
-        for i_episode in range(num_episodes):
-                episode_return = 0
-                while not detector.get_train_flag():
-                    # print("\r Waiting for training command...", end="")
-                    time.sleep(0.1)
-                # print("Training command received!")
-                print("start episode %d"%(i_episode))
-                detector.setup_episode_num(i_episode)
+    # # while True:
+    # return_list = []
+    # max_episode_steps = 30
+    # sleep_time = 1
+    # # for i in range(10):
+    # #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
+    # #         for i_episode in range(int(num_episodes/10)):
+    # #             
+    # with tqdm(total=num_episodes) as pbar:
+    #     for i_episode in range(num_episodes):
+    #             episode_return = 0
+    #             while not detector.get_train_flag():
+    #                 # print("\r Waiting for training command...", end="")
+    #                 time.sleep(0.1)
+    #             # print("Training command received!")
+    #             print("start episode %d"%(i_episode))
+    #             detector.setup_episode_num(i_episode)
 
-                # detector.setup_video_out()
-                detector.setup_frame_stamps()
-                # detector.set_save_state(True)
-                done = False
-                counts = 0
-                while not done:
-                    counts += 1
-                    if counts >= max_episode_steps:
-                        done = True
-                        print("Episode steps reach the max!")
-                        episode_return = counts
-                        break
-                    time.sleep(2)
-                    if not detector.is_in_rect():
-                        # debuging, disable this line temporarily 
-                        print("Fish is out of the region!")
-                        done = True 
-                        reward_pos = -10
-                        reward = reward_pos 
-                    else:
-                        # detector.calculate_distance()
-                        # distance_current = detector.get_distance_current()
-                        # distance_last = detector.get_distance_last()
-                        # if distance_current <= reach_threshold:
-                        #     done = True
-                        #     reward_pos = 10
-                        # else:
-                        #     done = False
-                        #     reward_pos = 0
+    #             # detector.setup_video_out()
+    #             detector.setup_frame_stamps()
+    #             # detector.set_save_state(True)
+    #             done = False
+    #             counts = 0
+    #             while not done:
+    #                 counts += 1
+    #                 if counts >= max_episode_steps:
+    #                     done = True
+    #                     print("Episode steps reach the max!")
+    #                     episode_return = counts
+    #                     break
+    #                 time.sleep(2)
+    #                 if not detector.is_in_rect():
+    #                     # debuging, disable this line temporarily 
+    #                     print("Fish is out of the region!")
+    #                     done = True 
+    #                     reward_pos = -10
+    #                     reward = reward_pos 
+    #                 else:
+    #                     # detector.calculate_distance()
+    #                     # distance_current = detector.get_distance_current()
+    #                     # distance_last = detector.get_distance_last()
+    #                     # if distance_current <= reach_threshold:
+    #                     #     done = True
+    #                     #     reward_pos = 10
+    #                     # else:
+    #                     #     done = False
+    #                     #     reward_pos = 0
                         
-                        # reward_appr = (distance_current - distance_last)*lambda_2
-                        # detector.calculate_theta_current()
-                        # theta_current = detector.get_theta_current()
-                        # detector.calculate_theta_dot()
-                        # dot_theta = detector.get_theta_dot()
-                        # reward_theta = -dot_theta*lambda_1
-                        # reward = reward_pos + reward_appr + reward_theta
-                        # episode_return += reward 
+    #                     # reward_appr = (distance_current - distance_last)*lambda_2
+    #                     # detector.calculate_theta_current()
+    #                     # theta_current = detector.get_theta_current()
+    #                     # detector.calculate_theta_dot()
+    #                     # dot_theta = detector.get_theta_dot()
+    #                     # reward_theta = -dot_theta*lambda_1
+    #                     # reward = reward_pos + reward_appr + reward_theta
+    #                     # episode_return += reward 
                     
-                        # print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(distance_current)+' Theta: '+str(theta_current)+' reward: '+ str(reward), end="")
+    #                     # print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(distance_current)+' Theta: '+str(theta_current)+' reward: '+ str(reward), end="")
 
-                        detector.setup_get_state_flag(True)
-                        temp_array = detector.get_state(2,2)
-                        detector.reset_pos_list()
-                        print("\n p_hx_avg: "+str(temp_array[0])\
-                            +"\n p_hy_avg: "+str(temp_array[1])\
-                            +"\n p_bx_avg: "+str(temp_array[2])\
-                            +"\n p_by_avg: "+str(temp_array[3])\
-                            +"\n theta_avg: "+str(temp_array[4])\
-                            +"\n omega_avg: "+str(temp_array[5])\
-                            +"\n displacement_avg: "+str(temp_array[6])\
-                            +"\n velocity_avg: " +str(temp_array[7])\
-                            +"\n l_x: " +str(temp_array[8])\
-                            +"\n l_y: " +str(temp_array[9]))
-                        detector.setup_get_state_flag(False)
+    #                     detector.setup_get_state_flag(True)
+    #                     temp_array = detector.get_state(2,2)
+    #                     detector.reset_pos_list()
+    #                     print("\n p_hx_avg: "+str(temp_array[0])\
+    #                         +"\n p_hy_avg: "+str(temp_array[1])\
+    #                         +"\n p_bx_avg: "+str(temp_array[2])\
+    #                         +"\n p_by_avg: "+str(temp_array[3])\
+    #                         +"\n theta_avg: "+str(temp_array[4])\
+    #                         +"\n omega_avg: "+str(temp_array[5])\
+    #                         +"\n displacement_avg: "+str(temp_array[6])\
+    #                         +"\n velocity_avg: " +str(temp_array[7])\
+    #                         +"\n l_x: " +str(temp_array[8])\
+    #                         +"\n l_y: " +str(temp_array[9]))
+    #                     detector.setup_get_state_flag(False)
 
-                    # print('\r counts:  %d'%(counts), end="")
-                    # time.sleep(sleep_time)
+    #                 # print('\r counts:  %d'%(counts), end="")
+    #                 # time.sleep(sleep_time)
         
-                # detector.set_save_state(False)
-                detector.set_train_flag(False)
-                # detector.export_current_video()
-                detector.export_frame_stamps()
-                return_list.append(episode_return)
+    #             # detector.set_save_state(False)
+    #             detector.set_train_flag(False)
+    #             # detector.export_current_video()
+    #             detector.export_frame_stamps()
+    #             return_list.append(episode_return)
 
-                # if (i_episode+1) % 10 == 0:
-                #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
-                pbar.update(1)
+    #             # if (i_episode+1) % 10 == 0:
+    #             #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
+    #             pbar.update(1)
     
-    # return return_list
+    # # return return_list
 
     
 

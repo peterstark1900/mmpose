@@ -1,5 +1,6 @@
 from peter_detector import FishDetector
 from peter_serial import SerialAction
+import time
 
 class Fish2DEnv():
      
@@ -14,7 +15,7 @@ class Fish2DEnv():
         self.lambda_1 = reward_cfg["lambda_1"]
         self.lambda_2 = reward_cfg["lambda_2"]
         self.lambda_3 = reward_cfg["lambda_3"]
-        self.reach_threshold = reward_cfg["reach_threshold"]
+        # self.reach_threshold = reward_cfg["reach_threshold"]
         self.counts = 0
         self.max_episode_steps = 1000
 
@@ -49,6 +50,9 @@ class Fish2DEnv():
         # print(formatted_list)
 
         self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
+
+        time.sleep(3)
+
 
         # calculate the reward
         # param_offset = action_list[1]
