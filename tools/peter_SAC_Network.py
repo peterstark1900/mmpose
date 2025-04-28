@@ -34,17 +34,17 @@ class PolicyNetContinuous(torch.nn.Module):
         # # # 计算tanh_normal分布的对数概率密度
         # # log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
         # # action = action * self.action_bound
-
+        print("action: ", action)
         # 解包动作分量进行单独处理
-        # M_b = action[:, 0]  # [-1, 1] → [0, 50]
-        # B_b = action[:, 1]  # [-1, 1] → [-30, 30]
-        # w_b = action[:, 2]  # [-1, 1] → [5, 30]
-        # R_b = action[:, 3]  # [-1, 1] → [1, 40]
+        M_b = action[:, 0]  
+        B_b = action[:, 1]  
+        w_b = action[:, 2]  
+        R_b = action[:, 3]  
         # 使用弹性索引代替固定维度索引
-        M_b = action[..., 0]  
-        B_b = action[..., 1]
-        w_b = action[..., 2]
-        R_b = action[..., 3]
+        # M_b = action[..., 0]  
+        # B_b = action[..., 1]
+        # w_b = action[..., 2]
+        # R_b = action[..., 3]
 
         # 分量缩放和约束
         M_b = (M_b + 1) * 25.0                        # [0, 50]
@@ -80,9 +80,13 @@ class QValueNetContinuous(torch.nn.Module):
         super(QValueNetContinuous, self).__init__()
         self.fc1 = torch.nn.Linear(state_dim + action_dim, hidden_dim)
         self.fc2 = torch.nn.Linear(hidden_dim, hidden_dim)
-        self.fc_out = torch.nn.Linear(hidden_dim, 1)
+        # self.fc_out = torch.nn.Linear(hidden_dim, 1)
+        self.fc_out = torch.nn.Linear(hidden_dim, action_dim)
 
     def forward(self, x, a):
+        # print("x: ", x)
+        # print("a: ", a)
+        # print('dim: ', x.shape, a.shape)
         cat = torch.cat([x, a], dim=1)
         x = F.relu(self.fc1(cat))
         x = F.relu(self.fc2(x))
@@ -155,7 +159,7 @@ class SACContinuous:
         states = torch.tensor(transition_dict['states'],
                               dtype=torch.float).to(self.device)
         actions = torch.tensor(transition_dict['actions'],
-                               dtype=torch.float).view(-1, 1).to(self.device)
+                               dtype=torch.float).view(-1, 4).to(self.device)
         rewards = torch.tensor(transition_dict['rewards'],
                                dtype=torch.float).view(-1, 1).to(self.device)
         next_states = torch.tensor(transition_dict['next_states'],
