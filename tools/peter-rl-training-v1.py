@@ -120,81 +120,87 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                 #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
     
-    return return_list
+    # return return_list
 
     
 
     #############################  real region  #######################
-    # env = Fish2DEnv(detector, serial_cfg, reward_cfg)
-    # state_dim = 7
-    # action_dim = 4
+    env = Fish2DEnv(detector, serial_cfg, reward_cfg)
+    state_dim = 7
+    action_dim = 4
 
 
-    # random.seed(0)
-    # np.random.seed(0)
+    random.seed(0)
+    np.random.seed(0)
 
-    # torch.manual_seed(0)
+    torch.manual_seed(0)
 
-    # actor_lr = 1e-3
-    # critic_lr = 1e-2
-    # alpha_lr = 3e-4
-    # num_episodes = 100
-    # hidden_dim = 128
-    # gamma = 0.98
-    # tau = 0.005  # 软更新参数
-    # buffer_size = 100000
-    # minimal_size = 3
-    # batch_size = 1
-    # target_entropy = -4
-    # device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
-    #     "cpu")
+    actor_lr = 1e-3
+    critic_lr = 1e-2
+    alpha_lr = 3e-4
+    num_episodes = 100
+    hidden_dim = 128
+    gamma = 0.98
+    tau = 0.005  # 软更新参数
+    buffer_size = 100000
+    minimal_size = 3
+    batch_size = 1
+    target_entropy = -4
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
+        "cpu")
 
-    # replay_buffer = ReplayBuffer(buffer_size)
-    # agent = SACContinuous(state_dim, hidden_dim, action_dim,
-    #                   actor_lr, critic_lr, alpha_lr, target_entropy, tau,
-    #                   gamma, device)
-    # return_list = []
-    # # for i in range(10):
-    # #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
-    # #         for i_episode in range(int(num_episodes/10)):
-    # #            
-    # with tqdm(total=num_episodes) as pbar:
-    #     for i_episode in range(num_episodes):
-    #             episode_return = 0
-    #             while not detector.get_train_flag():
-    #                 print("\r Waiting for training command...",end="")
-    #             print("Training command received!")
-    #             print("start episode %d"%(i_episode))
-    #             detector.setup_episode_num(i_episode)
-    #             # detector.setup_video_out()
-    #             detector.setup_frame_stamps()
-    #             detector.set_save_state(True)
-    #             state = env.reset()
-    #             done = False
-    #             while not done:
-    #                 action = agent.take_action(state)
-    #                 next_state, reward, done, _ = env.step(action)
-    #                 replay_buffer.add(state, action, reward, next_state, done)
-    #                 # transition_dict['states'].append(state)
-    #                 # transition_dict['actions'].append(action)
-    #                 # transition_dict['next_states'].append(next_state)
-    #                 # transition_dict['rewards'].append(reward)
-    #                 # transition_dict['dones'].append(done)
-    #                 state = next_state
-    #                 episode_return += reward
-    #                 if replay_buffer.size() > minimal_size:
-    #                     b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
-    #                     transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
-    #                     agent.update(transition_dict)
-    #             return_list.append(episode_return)
-    #             detector.set_save_state(False)
-    #             detector.set_train_flag(False)
-    #             # detector.export_current_video()
-    #             detector.export_frame_stamps()
+    replay_buffer = ReplayBuffer(buffer_size)
+    agent = SACContinuous(state_dim, hidden_dim, action_dim,
+                      actor_lr, critic_lr, alpha_lr, target_entropy, tau,
+                      gamma, device)
+    return_list = []
+    # for i in range(10):
+    #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
+    #         for i_episode in range(int(num_episodes/10)):
+    #            
+    with tqdm(total=num_episodes) as pbar:
+        for i_episode in range(num_episodes):
+                episode_return = 0
+                while not detector.get_train_flag():
+                    print("\r Waiting for training command...",end="")
+                    time.sleep(0.1) #avoid busy waiting
+                print("Training command received!")
+                print("start episode %d"%(i_episode))
+                detector.setup_episode_num(i_episode)
+                # detector.setup_video_out()
+                detector.setup_frame_stamps()
+                # detector.set_save_state(True)
+                state = env.reset()
+                done = False
+                while not done:
+                    action = agent.take_action(state)
+                    print("stepping...")
+                    next_state, reward, done, _ = env.step(action)
+                    print("step done!")
+                    replay_buffer.add(state, action, reward, next_state, done)
+                    transition_dict['states'].append(state)
+                    transition_dict['actions'].append(action)
+                    transition_dict['next_states'].append(next_state)
+                    transition_dict['rewards'].append(reward)
+                    transition_dict['dones'].append(done)
+                    state = next_state
+                    episode_return += reward
+                    if replay_buffer.size() > minimal_size:
+                        b_s, b_a, b_r, b_ns, b_d = replay_buffer.sample(batch_size)
+                        transition_dict = {'states': b_s, 'actions': b_a, 'next_states': b_ns, 'rewards': b_r, 'dones': b_d}
+                        agent.update(transition_dict)
+                return_list.append(episode_return)
+                # detector.set_save_state(False)
+                detector.set_train_flag(False)
+                # detector.export_current_video()
+                detector.export_frame_stamps()
 
-    #             # if (i_episode+1) % 10 == 0:
-    #             #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
-    #             pbar.update(1)
+                # if (i_episode+1) % 10 == 0:
+                #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
+                pbar.update(1)
+
+    return return_list        
+
     # episodes_list = list(range(len(return_list)))
     # plt.style.use('bmh') 
     # plt.figure(figsize=(16, 10), dpi=600)
@@ -269,9 +275,9 @@ def main():
         "control_type": "auto",
     }
     my_reward_cfg_dict = {
-        'reach_threshold': 0.05,
         'lambda_1': 0.1,
-        'lambda_2': 0.1,        
+        'lambda_2': 0.1,
+        'lambda_3': 0.1,  
     }
 
     my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,win11_save_cfg_dict)

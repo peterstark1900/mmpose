@@ -603,6 +603,9 @@ class FishDetector():
 
         # calculate the average distance
         norm_end = np.linalg.norm(vec_end)
+        # decide the sign of the distance
+        if np.cross(vec_initial, vec_end) > 0:
+            norm_end = -norm_end
         displacement_avg = norm_end*np.cos(theta_avg)
         # calculate the average velocity
         v_avg = displacement_avg/self.duration.total_seconds()
