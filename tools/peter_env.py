@@ -21,7 +21,7 @@ class Fish2DEnv():
 
         self.theta_avg_total = 0
         self.last_theta_avg_total = 0
-        self.theta_avg_trend = 0  # 趋势标记：1递增，-1递减，0初始状态
+        self.theta_avg_total_trend = 0  # 趋势标记：1递增，-1递减，0初始状态
         self.theta_avg_mono = 1
 
         # self.theta_reward_coeff = 0.1  # 奖励系数，可调整
@@ -50,8 +50,9 @@ class Fish2DEnv():
         # print(formatted_list)
 
         self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
-
+        print('sleep 3s')
         time.sleep(3)
+        print('sleep is over!')
 
 
         # calculate the reward
@@ -89,9 +90,10 @@ class Fish2DEnv():
         #     done = True
         #     print("Episode steps reach the max!")
 
-        self.fish_detector.setup_get_state_flag(False)
+        self.fish_detector.setup_get_state_flag(True)
         state_array = self.fish_detector.get_state(2,2)
         self.fish_detector.reset_pos_list()
+        self.fish_detector.setup_get_state_flag(False)
 
         theta_avg = state_array[4]
         omega_avg = state_array[5]
@@ -173,7 +175,7 @@ class Fish2DEnv():
                 reward_pos = 0
 
         reward = reward_pos + reward_theta - reward_dis
-        return self.fish_detector.get_state(), reward, done, {}
+        return state_array, reward, done, {}
     
     def reset(self):
         '''

@@ -126,7 +126,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
 
     #############################  real region  #######################
     env = Fish2DEnv(detector, serial_cfg, reward_cfg)
-    state_dim = 7
+    state_dim = 10
     action_dim = 4
 
 
@@ -142,7 +142,7 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
     hidden_dim = 128
     gamma = 0.98
     tau = 0.005  # 软更新参数
-    buffer_size = 100000
+    buffer_size = 1000
     minimal_size = 3
     batch_size = 1
     target_entropy = -4
@@ -170,19 +170,22 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                 # detector.setup_video_out()
                 detector.setup_frame_stamps()
                 # detector.set_save_state(True)
+                time.sleep(2)
                 state = env.reset()
                 done = False
                 while not done:
+                    # print("state: ",state)
                     action = agent.take_action(state)
                     print("stepping...")
                     next_state, reward, done, _ = env.step(action)
                     print("step done!")
                     replay_buffer.add(state, action, reward, next_state, done)
-                    transition_dict['states'].append(state)
-                    transition_dict['actions'].append(action)
-                    transition_dict['next_states'].append(next_state)
-                    transition_dict['rewards'].append(reward)
-                    transition_dict['dones'].append(done)
+                    print("size: ",replay_buffer.size())
+                    # transition_dict['states'].append(state)
+                    # transition_dict['actions'].append(action)
+                    # transition_dict['next_states'].append(next_state)
+                    # transition_dict['rewards'].append(reward)
+                    # transition_dict['dones'].append(done)
                     state = next_state
                     episode_return += reward
                     if replay_buffer.size() > minimal_size:
