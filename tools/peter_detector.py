@@ -904,7 +904,8 @@ class FishDetector():
         if self.target_x == None or self.target_y ==None:
             print("Please set the target point first!")
             exit()
-        while True:
+        # while True:
+        while not self.exit_flag:
             if self.detect_type == 'camera':
                 # 按 'q' 键退出
                 if cv2.waitKey(1) & 0xFF == ord('q'):

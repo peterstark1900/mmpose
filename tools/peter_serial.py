@@ -166,11 +166,11 @@ def main():
         "duration": 5,
     }
     my_action_dict_2 = {
-        "motion_state": "CLE",
-        "amp": '35',
-        "offset": '15',
-        "omega": '20',
-        "ratio": '10',
+        "motion_state": "CRE",
+        "amp": '50',
+        "offset": '30',
+        "omega": '05',
+        "ratio": '40',
         "duration": 5,
     }
     my_action_dict_3 = {

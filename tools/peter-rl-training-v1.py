@@ -23,7 +23,7 @@ import queue
 
 # class Fish2DEnv(gym.Env):
 
-def rl_train(detector, serial_cfg = None, reward_cfg = None):
+def rl_train(detector, serial_cfg = None, reward_cfg = None, result_queue = None):
 
     #############################  debug region  #######################
     # i_episode = 0
@@ -133,18 +133,19 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
     random.seed(0)
     np.random.seed(0)
 
-    torch.manual_seed(0)
+    torch.manual_seed(13)
 
     actor_lr = 1e-3
     critic_lr = 1e-2
     alpha_lr = 3e-4
-    num_episodes = 100
+    num_episodes = 10
     hidden_dim = 128
     gamma = 0.98
-    tau = 0.005  # 软更新参数
-    buffer_size = 1000
-    minimal_size = 3
-    batch_size = 1
+    # tau = 0.005  # 软更新参数
+    tau = 0.01             # 增大软更新系数，使目标网络更稳定
+    buffer_size = 10000
+    minimal_size = 8
+    batch_size = 8
     target_entropy = -4
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
         "cpu")
@@ -201,7 +202,12 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None):
                 # if (i_episode+1) % 10 == 0:
                 #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
                 pbar.update(1)
-
+    # save the model 
+    current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    save_path = f'sac_model_{current_time}.pth'
+    agent.save_model(save_path)
+    print(f'Model saved to {save_path}')
+    result_queue.put(return_list)
     return return_list        
 
     # episodes_list = list(range(len(return_list)))
@@ -272,41 +278,45 @@ def main():
     }
 
     my_serial_config_dict = {
-        "port": "/dev/COM7",
+        "port": "COM7",
         "baudrate": 115200,
         "duration": 5,
         "control_type": "auto",
     }
     my_reward_cfg_dict = {
-        'lambda_1': 0.1,
+        'lambda_1': 15,
         'lambda_2': 0.1,
-        'lambda_3': 0.1,  
+        'lambda_3': 0.05,  
     }
 
     my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,win11_save_cfg_dict)
     my_detector.set_save_state(False)
     result_queue = queue.Queue()
-    training_thread = threading.Thread(target=rl_train, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict))
+    training_thread = threading.Thread(target=rl_train, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
     # training_thread = threading.Thread(target=rl_train, args=(my_detector, result_queue))
     training_thread.daemon = True
     training_thread.start()
     # my_detector.minimun_pipeline()
     my_detector.a_fish_pipeline()
-    # training_thread.join()
-    # return_list = result_queue.get()
-    # episodes_list = list(range(len(return_list)))
-    # plt.style.use('bmh') 
-    # plt.figure(figsize=(16, 10), dpi=600)
-    # plt.plot(episodes_list, return_list)
-    # plt.xlabel('Episodes')
-    # plt.ylabel('Returns')
-    # plt.title('Reward')
-    # plt.grid(True)
-    # # plt.show()  
-    # filename = 'reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.png'
-    # plt.savefig(filename,format='png',bbox_inches = 'tight')
-    # while True:
-    #     print('\r continue training: '+str(True)+' Distance: '+str(0.1)+' Theta: '+str(0.1), end="")
+
+    training_thread.join()
+    print("Training finished!")
+    my_detector.exit_flag = True
+    return_list = result_queue.get()
+    print('return_list: ',return_list)
+    episodes_list = list(range(len(return_list)))
+    plt.style.use('bmh') 
+    plt.figure(figsize=(16, 10), dpi=600)
+    plt.plot(episodes_list, return_list)
+    plt.xlabel('Episodes')
+    plt.ylabel('Returns')
+    plt.title('Reward')
+    plt.grid(True)
+    # plt.show()  
+    filename = 'reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.png'
+    plt.savefig(filename,format='png',bbox_inches = 'tight')
+
+    
 
 
 

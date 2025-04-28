@@ -47,11 +47,11 @@ class Fish2DEnv():
         for i in range(len(action_list)):
             rounded = round(action_list[i])
             formatted_list.append(f"{rounded:02d}")   
-        # print(formatted_list)
+        print(formatted_list)
 
         self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
-        print('sleep 3s')
-        time.sleep(3)
+        print('sleep 1s')
+        time.sleep(1)
         print('sleep is over!')
 
 
@@ -157,24 +157,26 @@ class Fish2DEnv():
         # update the last_theta_avg
         self.last_omega_avg = omega_avg
 
-        reward_theta = self.lambda_1*self.theta_avg_total_mono*self.theta_avg_total + self.lambda_2*self.omega_mono*omega_avg
+        reward_theta = self.lambda_1*self.theta_avg_total_mono*self.theta_avg_total 
+        reward_omega = self.lambda_2*self.omega_mono*omega_avg
         reward_dis = self.lambda_3*velocity_avg
-        if self.fish_detector.is_in_rect():
+        if not self.fish_detector.is_in_rect():
             done = True
             if abs(self.theta_avg_total) > 175:
-                reward_pos = 100
+                reward_pos = 10
             else:
-                reward_pos = -100
+                reward_pos = -10
             reward = reward_pos 
         else:
             if self.theta_avg_total>175:
                 done = True
-                reward_pos = 100
+                reward_pos = 10
             else:
                 done = False
                 reward_pos = 0
-
-        reward = reward_pos + reward_theta - reward_dis
+        print("reward_pos = %f, reward_theta = %f, reward_omega = %f, reward_dis = %f" % (reward_pos, reward_theta, reward_omega, reward_dis))
+        reward = reward_pos + reward_theta + reward_omega - reward_dis
+        print("reward = %f" % reward)
         return state_array, reward, done, {}
     
     def reset(self):

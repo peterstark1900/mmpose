@@ -16,6 +16,10 @@ class PolicyNetContinuous(torch.nn.Module):
         self.fc_std = torch.nn.Linear(hidden_dim, action_dim)
         # self.action_bound = action_bound
 
+        self.fc3 = torch.nn.Linear(hidden_dim, action_dim)
+        torch.nn.init.uniform_(self.fc3.weight, -3e-3, 3e-3)  # 添加均匀初始化
+        torch.nn.init.constant_(self.fc3.bias, 0.1)  # 避免初始输出为0
+
     def forward(self, x):
         x = F.relu(self.fc1(x))
         mu = self.fc_mu(x)

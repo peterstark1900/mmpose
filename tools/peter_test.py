@@ -114,10 +114,10 @@ def network():
     action_dim = 4
 
 
-    random.seed(0)
-    np.random.seed(0)
+    # random.seed(0)
+    # np.random.seed(0)
 
-    torch.manual_seed(1)
+    torch.manual_seed(13)
 
     actor_lr = 1e-3
     critic_lr = 1e-2
@@ -182,19 +182,19 @@ def network():
     print(formatted_list)
 
     
-    transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-    transition_dict['states'].append(state)
-    transition_dict['actions'].append(action)
-    transition_dict['next_states'].append(next_state)
-    transition_dict['rewards'].append(10)
-    transition_dict['dones'].append(True)
-    print(transition_dict)
-    agent.update(transition_dict)
-    select_action = agent.take_action(state)
-    print("select_action: ", select_action)
-    print("shape: ", select_action.shape)
-    print(type(select_action))
-    agent.update(transition_dict)
+    # transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
+    # transition_dict['states'].append(state)
+    # transition_dict['actions'].append(action)
+    # transition_dict['next_states'].append(next_state)
+    # transition_dict['rewards'].append(10)
+    # transition_dict['dones'].append(True)
+    # print(transition_dict)
+    # agent.update(transition_dict)
+    # select_action = agent.take_action(state)
+    # print("select_action: ", select_action)
+    # print("shape: ", select_action.shape)
+    # print(type(select_action))
+    # agent.update(transition_dict)
 
     # actor_lr = 1e-3
     # critic_lr = 1e-2
