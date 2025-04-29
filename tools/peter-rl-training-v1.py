@@ -375,10 +375,10 @@ def main():
     my_detector.set_save_state(False)
     result_queue = queue.Queue()
 
-    training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
-    # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector, result_queue))
-    training_thread.daemon = True
-    training_thread.start()
+    # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
+    # # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector, result_queue))
+    # training_thread.daemon = True
+    # training_thread.start()
 
     training_thread = threading.Thread(target=rl_train_on_policy, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
     # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector, result_queue))

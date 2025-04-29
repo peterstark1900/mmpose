@@ -767,8 +767,6 @@ class FishDetector():
         return 
 
     def setup_frame_stamps(self):
-        self.frame_stamps = []
-        self.time_stamps = []
         if self.episode_num is not None:
             self.output_json_file = self.json_output_path+'/'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'_'+str(self.episode_num)+'.json'
         else:
@@ -841,6 +839,9 @@ class FishDetector():
             json.dump(data, f, indent=4)
         
         print(f"Json has saved to: {self.output_json_file}")
+        self.frame_stamps = []
+        self.time_stamps = []
+        self.state_stamps = []
 
 
     def minimun_pipeline(self):

@@ -2,6 +2,7 @@ import json
 import cv2
 import numpy as np
 from datetime import datetime
+from matplotlib import pyplot as plt
 
 
 class Visualizer():
@@ -60,7 +61,30 @@ class Visualizer():
         else:
             print("Start showing the animation!")
             cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
+
+            history_trajectory = []
+
             for frame_stamp in self.data['frame_stamps']:
+
+                # 记录第一个关键点（head）的位置
+                current_head = frame_stamp[self.keypoints[0]]
+                history_trajectory.append(current_head)
+                
+                # # 绘制历史轨迹（最近50帧）
+                # for point in history_trajectory[-50:]:
+                #     cv2.circle(self.frame, point, 2, (0, 0, 255), -1)  # 黄色小点
+
+                # 修改为绘制连续线段（保留最近50帧）
+                if len(history_trajectory) >= 2:
+                    for i in range(len(history_trajectory)-1):
+                        # 绘制连接线段，颜色逐渐变淡
+                        alpha = 0.3 + 0.7 * (i / len(history_trajectory))
+                        color = (0, 0, int(255 * alpha))
+                        cv2.line(self.frame, 
+                                history_trajectory[i], 
+                                history_trajectory[i+1], 
+                                color, 
+                                thickness=2)
             
                 # 绘制关键点
                 for i in range(len(self.keypoints)):
@@ -108,14 +132,160 @@ class Visualizer():
             cv2.destroyAllWindows()
             print("Animation is over!")
 
+    def draw_static_analysis(self):
+        if self.data is None:
+            print("请先加载数据!")
+            return
+        print(len(self.data['time_stamps']))
+        print(len(self.data['frame_stamps']))
+        print(len(self.data['state_stamps']))
+        print(len(self.data['state_stamps'][0]['body_pos_list']))
+        theta_avg_list = []
+        omega_avg_list = []
+        for state_stamp in self.data['state_stamps']:
+            theta_avg_list.append(state_stamp['theta_avg'])
+            omega_avg_list.append(state_stamp['omega_avg'])
         
+        # print(self.data['state_stamps'][0]['theta_avg'])
+        # # 提取时间序列和角速度数据
+        # timestamps = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f") 
+        #             for ts in self.data['time_stamps']]
+        # time_sec = [(t - timestamps[0]).total_seconds() for t in timestamps]
+        
+        # # 从数据中提取角速度参数
+        # omega_values = [frame.get('omega_avg', 0) for frame in self.data['frame_stamps']]
+        # theta_values = [frame.get('theta_avg_total', 0) for frame in self.data['frame_stamps']]
+
+        # # 创建绘图画布
+        # plt.figure(figsize=(12, 6), dpi=150)
+        # plt.style.use('bmh')
+        
+        # # 绘制角速度曲线
+        # plt.plot(time_sec, omega_values, label='角速度 (deg/s)', color='royalblue')
+        
+        # # 绘制角度变化曲线
+        # plt.plot(time_sec, theta_values, '--', label='累计转角 (deg)', color='darkorange')
+        
+        # # 添加标注和样式
+        # plt.title("鱼头转向运动分析")
+        # plt.xlabel("时间 (秒)")
+        # plt.ylabel("数值")
+        # plt.grid(True)
+        # plt.legend()
+        
+        # # 计算并显示平均角速度
+        # avg_omega = np.mean(np.abs(omega_values))
+        # plt.annotate(f'平均角速度: {avg_omega:.2f} deg/s', 
+        #             xy=(0.7, 0.9), xycoords='axes fraction',
+        #             fontsize=10, bbox=dict(boxstyle="round", fc="white"))
+
+        # # 保存图像
+        # filename = f'analysis_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png'
+        # plt.savefig(filename, bbox_inches='tight')
+        # print(f"分析图表已保存至: {filename}")
+    def draw_trajectory(self,selected_kp=None):
+        if self.data is None:
+            print("请先加载数据!")
+            return
+        
+        plt.figure(figsize=(12, 8), dpi=150)
+        plt.gca().invert_yaxis()  # 反转Y轴匹配图像坐标系
+        
+         # 修改轨迹提取逻辑
+        trajectories = {}
+        if selected_kp:  # 单个关键点模式
+            trajectories[selected_kp] = [frame[selected_kp] for frame in self.data['frame_stamps']]
+        else:  # 原有全关键点模式
+            trajectories = {k: [] for k in self.keypoints}
+            for frame in self.data['frame_stamps']:
+                for kp in self.keypoints:
+                    trajectories[kp].append(frame[kp])
+        
+         # 修改绘制逻辑
+        if selected_kp:  # 绘制单个关键点
+            coords = trajectories[selected_kp]
+            x, y = zip(*coords)
+            color = [c/255 for c in self.point_colors[0][::-1]]  # 使用第一个关键点的颜色
+            plt.plot(x, y, 
+                color=color,
+                linewidth=2,
+                linestyle='-',
+                alpha=0.6,
+                label=f'{selected_kp}_trajectory')
+            # plt.scatter(x[::10], y[::10],
+            #         color=color,
+            #         s=30,
+            #         edgecolors='black')
+             # 标记起点和终点
+            plt.scatter(x[0], y[0], 
+                    color=color, 
+                    marker='^', 
+                    s=100,
+                    edgecolor='black',
+                    label='start')
+            plt.scatter(x[-1], y[-1],
+                    color=color,
+                    marker='s',
+                    s=100,
+                    edgecolor='black',
+                    label='end')
+        else:  # 原有绘制逻辑
+            for i, (kp, coords) in enumerate(trajectories.items()):
+                x, y = zip(*coords)
+                color = [c/255 for c in self.point_colors[i][::-1]]
+                plt.plot(x, y, 
+                        color=color,
+                        linewidth=2,
+                        linestyle='-',
+                        alpha=0.6,
+                        label=f'{kp}_trajectory')
+                # plt.scatter(x[::10], y[::10],
+                #         color=color,
+                #         s=30,
+                #         edgecolors='black')
+                plt.scatter(x[0], y[0], 
+                       color=color,
+                       marker='^',
+                       s=100,
+                       edgecolor='black',
+                       zorder=3)  # 提高图层级
+                plt.scatter(x[-1], y[-1],
+                        color=color,
+                        marker='s',
+                        s=100,
+                        edgecolor='black',
+                        zorder=3)
+
+        
+        # 绘制目标点
+        if self.draw_target:
+            target = (self.data['info']['target_x'], 
+                    self.data['info']['target_y'])
+            target_color = [c/255 for c in self.target_color[::-1]]  # BGR转RGB
+            plt.scatter(*target, s=200, marker='*',
+                    color=target_color,
+                    label='target loaction')
+        
+        plt.title("keypoints trajectory")
+        plt.xlabel("X")
+        plt.ylabel("Y")
+        plt.grid(True)
+        plt.legend()
+        
+        filename = f'trajectory_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png'
+        plt.savefig(filename, bbox_inches='tight')
+        print(f"Trajectory has save to: {filename}")
+    
     def mini_pipeline(self,file_path):
         self.load_data(file_path)
-        self.calculate_avg_fps()
-        if self.export_flag:
-            self.setup_video_out(file_path)
-        self.show_animation()
-            
+        # self.calculate_avg_fps()
+        # if self.export_flag:
+        #     self.setup_video_out(file_path)
+        # self.show_animation()
+        self.draw_static_analysis()
+        # self.draw_trajectory()
+        # self.draw_trajectory(selected_kp=self.keypoints[0])
+        
        
     # def json_to_mp4(self):
 def main():
@@ -132,12 +302,13 @@ def main():
         'draw_rect': True,
         'rect_color': (255, 0, 0),
         'rect_thickness': 2,
-        'draw_target': True,
+        'draw_target': False,
         'target_color': (0, 0, 255),
         'background_color': (255, 255, 255)
     }
 
-    file_path = r"E:\output\json\2025-04-24-13-27-32_3.json"
+    file_path = r"E:\output\json\2025-04-28-22-27-16_8.json"
+
     
     visualizer = Visualizer(vis_cofig_dict)
     visualizer.mini_pipeline(file_path)
