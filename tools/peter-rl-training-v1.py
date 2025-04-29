@@ -228,7 +228,7 @@ def rl_train_off_policy(detector, serial_cfg = None, reward_cfg = None, result_q
     # agent.save_model(save_path)
     # print(f'Model saved to {save_path}')
 
-def rl_train_off_policy(detector, serial_cfg = None, reward_cfg = None, result_queue = None):
+def rl_train_on_policy(detector, serial_cfg = None, reward_cfg = None, result_queue = None):
 
     env = Fish2DEnv(detector, serial_cfg, reward_cfg)
     state_dim = 10
@@ -379,6 +379,12 @@ def main():
     # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector, result_queue))
     training_thread.daemon = True
     training_thread.start()
+
+    training_thread = threading.Thread(target=rl_train_on_policy, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
+    # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector, result_queue))
+    training_thread.daemon = True
+    training_thread.start()
+
     # my_detector.minimun_pipeline()
     my_detector.a_fish_pipeline()
 

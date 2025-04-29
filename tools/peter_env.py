@@ -157,8 +157,8 @@ class Fish2DEnv():
         # update the last_theta_avg
         self.last_omega_avg = omega_avg
 
-        reward_theta = self.lambda_1*self.theta_avg_total_mono*self.theta_avg_total 
-        reward_omega = self.lambda_2*self.omega_mono*omega_avg
+        reward_theta = self.lambda_1*self.theta_avg_total_mono*abs(self.theta_avg_total) 
+        reward_omega = self.lambda_2*self.omega_mono*abs(omega_avg)
         reward_dis = self.lambda_3*velocity_avg
         if not self.fish_detector.is_in_rect():
             done = True
