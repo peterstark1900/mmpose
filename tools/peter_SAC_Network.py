@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 import torch
 import torch.nn.functional as F
-from torch.distributions import Normal
+from torch.distributions import Normal,MultivariateNormal
 import matplotlib.pyplot as plt
 import rl_utils
 
@@ -12,67 +12,37 @@ class PolicyNetContinuous(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):
         super(PolicyNetContinuous, self).__init__()
         self.fc1 = torch.nn.Linear(state_dim, hidden_dim)
-        self.fc_mu = torch.nn.Linear(hidden_dim, action_dim)
-        self.fc_std = torch.nn.Linear(hidden_dim, action_dim)
-        # self.action_bound = action_bound
-
-        self.fc3 = torch.nn.Linear(hidden_dim, action_dim)
-        torch.nn.init.uniform_(self.fc3.weight, -3e-3, 3e-3)  # 添加均匀初始化
-        torch.nn.init.constant_(self.fc3.bias, 0.1)  # 避免初始输出为0
+        # 为每个动作维度生成独立参数
+        self.mu_head = torch.nn.Linear(hidden_dim, action_dim)
+        self.log_std_head = torch.nn.Linear(hidden_dim, action_dim)
+        # 删除无用的fc3层
+        torch.nn.init.uniform_(self.mu_head.weight, -1e-2, 1e-2)
+        torch.nn.init.uniform_(self.log_std_head.weight, -1e-2, 1e-2)
+        torch.nn.init.constant_(self.mu_head.bias, 0.0)
+        torch.nn.init.constant_(self.log_std_head.bias, -1.0)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
-        mu = self.fc_mu(x)
-        std = F.softplus(self.fc_std(x))+1e-6  # 添加最小值保护
+        # 生成独立分布的参数
+        mu = torch.tanh(self.mu_head(x))  # 限制均值在[-1,1]
+        log_std = self.log_std_head(x)
+        log_std = torch.clamp(log_std, min=-5, max=2)  # 限制log标准差范围
+        std = F.softplus(log_std) + 1e-6
+        
+        # 创建独立正态分布
         dist = Normal(mu, std)
-        normal_sample = dist.rsample()  # rsample()是重参数化采样
-        log_prob = dist.log_prob(normal_sample)
-        # action = torch.tanh(normal_sample)
+        normal_sample = dist.rsample()
+        
+        # 应用双曲正切确保值在[-1,1]
         action = torch.tanh(normal_sample)
-        log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
-        # action = (action + 1) * 0.5  # Scale [0, 1] for positive-only actions
-        # # Create scaling matrix based on your action space:
-        # # [M_b(0-50), w_b(0-30), B_b(-30-30), R_b(0-40)]
-        # action = action * torch.tensor([50.0, 30.0, 30.0, 40.0]).to(x.device)
-        # action = action - torch.tensor([0.0, 0.0, 30.0, 0.0]).to(x.device)  # Offset for B_b
-        # # # 计算tanh_normal分布的对数概率密度
-        # # log_prob = log_prob - torch.log(1 - torch.tanh(action).pow(2) + 1e-7)
-        # # action = action * self.action_bound
-        print("action: ", action)
-        # 解包动作分量进行单独处理
-        M_b = action[:, 0]  
-        B_b = action[:, 1]  
-        w_b = action[:, 2]  
-        R_b = action[:, 3]  
-        # 使用弹性索引代替固定维度索引
-        # M_b = action[..., 0]  
-        # B_b = action[..., 1]
-        # w_b = action[..., 2]
-        # R_b = action[..., 3]
-
-        # 分量缩放和约束
-        M_b = (M_b + 1) * 25.0                        # [0, 50]
-        M_b = torch.clamp(M_b, 0.0, 50.0)
-        
-        # B_b = B_b * 30.0                              # [-30, 30]
-        # B_b = torch.clamp(B_b, -30.0, 30.0)
-
-        B_b = (B_b + 1) * 12.5 + 5.0               # [-1,1] → [5,30]
-        B_b = torch.clamp(B_b, 5.0, 30.0)
-
-        # w_b = (w_b + 1) * 15.0 + 1e-3                # (0, 30]
-        # w_b = torch.clamp(w_b, 1e-3, 30.0)
-
-        w_b = (w_b + 1) * 12.5 + 5.0 + 1e-3          # [5,30]
-        w_b = torch.clamp(w_b, 5.0 + 1e-3, 30.0)
-        
-        
-        
-        # R_b = (R_b + 1) * 19.5+1.0 + 1e-3                # [1, 40]
-        # R_b = torch.clamp(R_b, 1.0+1e-3, 40.0)
-
-        R_b = (R_b + 1) * 15.0 + 10.0 + 1e-3          # [-1,1] → [10,40]
-        R_b = torch.clamp(R_b, 10.0 + 1e-3, 40.0)
+        log_prob = dist.log_prob(normal_sample)
+        log_prob -= torch.log(1 - action.pow(2) + 1e-6)  # 修正概率计算
+        # print("action: ", action)
+        # 分量缩放（通过数学变换替代clamp）
+        M_b = (action[:, 0] + 1) * 25.0              # [0, 50]
+        B_b = (action[:, 1] + 1) * 12.5 + 5.0        # [5, 30]
+        w_b = (action[:, 2] + 1) * 12.5 + 5.0       # [5, 30]
+        R_b = (action[:, 3] + 1) * 15.0 + 10.0       # [10, 40]
 
         # 重新组合动作分量
         scaled_action = torch.stack([M_b, B_b, w_b, R_b], dim=1)

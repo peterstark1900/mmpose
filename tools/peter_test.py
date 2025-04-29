@@ -22,7 +22,16 @@ import datetime
 
 import threading
 import queue
-
+def convert_action(action):
+    action_list = action.flatten().tolist()
+    # print(action_list)
+    formatted_list = []
+    # print(action_list[0], action_list[1], action_list[2], action_list[3])
+    for i in range(len(action_list)):
+        rounded = round(action_list[i])
+        formatted_list.append(f"{rounded:02d}")     
+    print(formatted_list)
+    
 def env():
     # # env_name = 'CartPole-v0'
     # env_name = 'Pendulum-v1'
@@ -162,27 +171,60 @@ def network_SAC():
                         825])
     # state = np.expand_dims([1403, 340, 960, 540, 1, 1, 1], axis=0)
     # next_state = np.expand_dims([1000, 430, 690, 450, 2, 2, 2], axis=0)
-    print(state)
-    print(type(state))
+    # print(state)
+    # print(type(state))
     action = agent.take_action(state)
-    print(action)
-    print(type(action))
+    convert_action(action)
+    # print(action)
+    # print(type(action))
 
-    action_list = action.flatten().tolist()
-    print(action_list)
-    formatted_list = []
-    print(action_list[0], action_list[1], action_list[2], action_list[3])
-    for i in range(len(action_list)):
-        rounded = round(action_list[i])
-        # if i == 1:
-        #    formatted_list.append( f"{rounded + 30:02d}")
-        # else:
-        #    formatted_list.append(f"{rounded:02d}")
-        formatted_list.append(f"{rounded:02d}")
+    # action_list = action.flatten().tolist()
+    # print(action_list)
+    # formatted_list = []
+    # print(action_list[0], action_list[1], action_list[2], action_list[3])
+    # for i in range(len(action_list)):
+    #     rounded = round(action_list[i])
+    #     # if i == 1:
+    #     #    formatted_list.append( f"{rounded + 30:02d}")
+    #     # else:
+    #     #    formatted_list.append(f"{rounded:02d}")
+    #     formatted_list.append(f"{rounded:02d}")
         
-    print(formatted_list)
+    # print(formatted_list)
+
+    transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
+    transition_dict['states'].append(state)
+    transition_dict['actions'].append(action)
+    transition_dict['next_states'].append(next_state)
+    transition_dict['rewards'].append(10)
+    transition_dict['dones'].append(True)
+    # print(transition_dict)
+    agent.update(transition_dict)
+    select_action = agent.take_action(state)
+    convert_action(select_action)
+    for i in range(30):
+        # 添加噪声和状态变化
+        noise = np.random.normal(0, 0.1, state.shape)
+        dynamic_state = state + noise * i
+        dynamic_next_state = next_state + noise * i
+        
+        transition_dict = {
+            'states': [dynamic_state],
+            'actions': [agent.take_action(dynamic_state)],
+            'next_states': [dynamic_next_state],
+            'rewards': [10 + i],  # 奖励动态变化
+            'dones': [i % 5 == 0]  # 动态终止信号
+        }
+        agent.update(transition_dict)
+        action = agent.take_action(state)
+        convert_action(action)
+    # print("select_action: ", select_action)
+    # print("shape: ", select_action.shape)
+    # print(type(select_action))
+    # agent.update(transition_dict)
 
 def newwork_PPO():
+    torch.manual_seed(13)
     state_dim = 10
     action_dim = 4
     actor_lr = 1e-3
@@ -220,36 +262,55 @@ def newwork_PPO():
                 epochs, eps, gamma, device)
     
     action = agent.take_action(state)
-    print(action)
-    action_list = action.flatten().tolist()
-    print(action_list)
-    formatted_list = []
-    print(action_list[0], action_list[1], action_list[2], action_list[3])
-    for i in range(len(action_list)):
-        rounded = round(action_list[i])
-        formatted_list.append(f"{rounded:02d}")     
-    print(formatted_list)
+    convert_action(action)
+    # print(action)
+    # print(action.shape)
+    # print(type(action))
+    # action_list = action.flatten().tolist()
+    # # print(action_list)
+    # formatted_list = []
+    # # print(action_list[0], action_list[1], action_list[2], action_list[3])
+    # for i in range(len(action_list)):
+    #     rounded = round(action_list[i])
+    #     formatted_list.append(f"{rounded:02d}")     
+    # print(formatted_list)
 
-    # transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
-    # transition_dict['states'].append(state)
-    # transition_dict['actions'].append(action)
-    # transition_dict['next_states'].append(next_state)
-    # transition_dict['rewards'].append(10)
-    # transition_dict['dones'].append(True)
+    transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
+    transition_dict['states'].append(state)
+    transition_dict['actions'].append(action)
+    transition_dict['next_states'].append(next_state)
+    transition_dict['rewards'].append(10)
+    transition_dict['dones'].append(True)
     # print(transition_dict)
-    # agent.update(transition_dict)
-    # select_action = agent.take_action(state)
-    # print("select_action: ", select_action)
-    # print("shape: ", select_action.shape)
-    # print(type(select_action))
-    # agent.update(transition_dict)
+    agent.update(transition_dict)
+    select_action = agent.take_action(state)
+    convert_action(select_action)
+
+    for i in range(30):
+        # 添加噪声和状态变化
+        noise = np.random.normal(0, 0.1, state.shape)
+        dynamic_state = state + noise * i
+        dynamic_next_state = next_state + noise * i
+        
+        transition_dict = {
+            'states': [dynamic_state],
+            'actions': [agent.take_action(dynamic_state)],
+            'next_states': [dynamic_next_state],
+            'rewards': [10 + i],  # 奖励动态变化
+            'dones': [i % 5 == 0]  # 动态终止信号
+        }
+        agent.update(transition_dict)
+        action = agent.take_action(state)
+        convert_action(action)
+
+
 
     
     
 def main():
     # env()
-    # network_SAC()
-    newwork_PPO()
+    network_SAC()
+    # newwork_PPO()
 
 if __name__ == '__main__':
     main()

@@ -13,6 +13,7 @@ from rl_utils import ReplayBuffer, train_off_policy_agent, train_on_policy_agent
 from peter_env import Fish2DEnv
 from peter_AC_Network import PolicyNet, ValueNet, ActorCritic
 from peter_SAC_Network import SACContinuous, PolicyNetContinuous, QValueNetContinuous
+from peter_PPO_Network import PPOContinuous, PolicyNetContinuous
 from peter_detector import FishDetector
 
 import time
@@ -23,7 +24,7 @@ import queue
 
 # class Fish2DEnv(gym.Env):
 
-def rl_train(detector, serial_cfg = None, reward_cfg = None, result_queue = None):
+def rl_train_off_policy(detector, serial_cfg = None, reward_cfg = None, result_queue = None):
 
     #############################  debug region  #######################
     # i_episode = 0
@@ -227,6 +228,87 @@ def rl_train(detector, serial_cfg = None, reward_cfg = None, result_queue = None
     # agent.save_model(save_path)
     # print(f'Model saved to {save_path}')
 
+def rl_train_off_policy(detector, serial_cfg = None, reward_cfg = None, result_queue = None):
+
+    env = Fish2DEnv(detector, serial_cfg, reward_cfg)
+    state_dim = 10
+    action_dim = 4
+
+    random.seed(0)
+    np.random.seed(0)
+
+    torch.manual_seed(13)
+
+    actor_lr = 1e-3
+    critic_lr = 1e-2
+    num_episodes = 10
+    hidden_dim = 128
+    gamma = 0.98
+    lmbda = 0.95
+    epochs = 10
+    eps = 0.2
+    buffer_size = 10000
+    minimal_size = 8
+    batch_size = 8
+    target_entropy = -4
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
+        "cpu")
+
+    replay_buffer = ReplayBuffer(buffer_size)
+    agent = PPOContinuous(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,epochs, eps, gamma, device)
+    return_list = []
+    # for i in range(10):
+    #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
+    #         for i_episode in range(int(num_episodes/10)):
+    #            
+    with tqdm(total=num_episodes) as pbar:
+        for i_episode in range(num_episodes):
+                episode_return = 0
+                transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
+                while not detector.get_train_flag():
+                    print("\r Waiting for training command...",end="")
+                    time.sleep(0.1) #avoid busy waiting
+                print("Training command received!")
+                print("start episode %d"%(i_episode))
+                detector.setup_episode_num(i_episode)
+                # detector.setup_video_out()
+                detector.setup_frame_stamps()
+                # detector.set_save_state(True)
+                time.sleep(2)
+                state = env.reset()
+                done = False
+                while not done:
+                    # print("state: ",state)
+                    action = agent.take_action(state)
+                    print("stepping...")
+                    next_state, reward, done, _ = env.step(action)
+                    print("step done!")
+                    replay_buffer.add(state, action, reward, next_state, done)
+                    print("size: ",replay_buffer.size())
+                    transition_dict['states'].append(state)
+                    transition_dict['actions'].append(action)
+                    transition_dict['next_states'].append(next_state)
+                    transition_dict['rewards'].append(reward)
+                    transition_dict['dones'].append(done)
+                    state = next_state
+                    episode_return += reward
+                return_list.append(episode_return)
+                # detector.set_save_state(False)
+                detector.set_train_flag(False)
+                # detector.export_current_video()
+                detector.export_frame_stamps()
+
+                # if (i_episode+1) % 10 == 0:
+                #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
+                pbar.update(1)
+    # save the model 
+    current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    save_path = f'sac_model_{current_time}.pth'
+    agent.save_model(save_path)
+    print(f'Model saved to {save_path}')
+    result_queue.put(return_list)
+    return return_list        
+
 def main():
     anno_cfg_dict = {
         'my_anno_flag': True,
@@ -292,8 +374,9 @@ def main():
     my_detector = FishDetector(win11_capture_cfg_dict, win11_mmpose_cfg_dict, anno_cfg_dict,win11_save_cfg_dict)
     my_detector.set_save_state(False)
     result_queue = queue.Queue()
-    training_thread = threading.Thread(target=rl_train, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
-    # training_thread = threading.Thread(target=rl_train, args=(my_detector, result_queue))
+
+    training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
+    # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector, result_queue))
     training_thread.daemon = True
     training_thread.start()
     # my_detector.minimun_pipeline()
