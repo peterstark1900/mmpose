@@ -14,6 +14,7 @@ from rl_utils import ReplayBuffer, train_off_policy_agent, train_on_policy_agent
 # from peter_env import Fish2DEnv
 from peter_AC_Network import PolicyNet, ValueNet, ActorCritic
 from peter_SAC_Network import SACContinuous, PolicyNetContinuous, QValueNetContinuous
+from peter_PPO_Network import PPO, PPOContinuous
 from peter_detector import FishDetector
 
 import time
@@ -109,7 +110,7 @@ def env():
     #                                             replay_buffer, minimal_size,
     #                                             batch_size)
 
-def network():
+def network_SAC():
     state_dim = 10
     action_dim = 4
 
@@ -181,7 +182,54 @@ def network():
         
     print(formatted_list)
 
+def newwork_PPO():
+    state_dim = 10
+    action_dim = 4
+    actor_lr = 1e-3
+    critic_lr = 1e-2
+    num_episodes = 500
+    hidden_dim = 128
+    gamma = 0.98
+    lmbda = 0.95
+    epochs = 10
+    eps = 0.2
+    device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
+        "cpu")
+    state = np.array([551.5, \
+                        326.0, \
+                        630.0, \
+                        364.5, \
+                        -16.261203482894103, \
+                        -10.441813660743295, \
+                        -74.39016383661483, \
+                        -47.768188239647465,\
+                        1470, \
+                        825])
+    next_state = np.array([455.5, \
+                        272.5, \
+                        540.0, \
+                        301.0, \
+                        2.958600371969169, \
+                        1.5897086297370844, \
+                        -87.68785774187373, \
+                        -47.11624641709709,\
+                        1470, \
+                        825])
     
+    agent = PPOContinuous(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,
+                epochs, eps, gamma, device)
+    
+    action = agent.take_action(state)
+    print(action)
+    action_list = action.flatten().tolist()
+    print(action_list)
+    formatted_list = []
+    print(action_list[0], action_list[1], action_list[2], action_list[3])
+    for i in range(len(action_list)):
+        rounded = round(action_list[i])
+        formatted_list.append(f"{rounded:02d}")     
+    print(formatted_list)
+
     # transition_dict = {'states': [], 'actions': [], 'next_states': [], 'rewards': [], 'dones': []}
     # transition_dict['states'].append(state)
     # transition_dict['actions'].append(action)
@@ -196,28 +244,12 @@ def network():
     # print(type(select_action))
     # agent.update(transition_dict)
 
-    # actor_lr = 1e-3
-    # critic_lr = 1e-2
-    # num_episodes = 500
-    # hidden_dim = 128
-    # gamma = 0.98
-    # lmbda = 0.95
-    # epochs = 10
-    # eps = 0.2
-    # device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
-    #     "cpu")
-
-    # # env_name = 'CartPole-v0'
-    # # env = gym.make(env_name)
-    # # env.seed(0)
-    # torch.manual_seed(0)
-    # state_dim = env.observation_space.shape[0]
-    # action_dim = env.action_space.n
-    # agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,
-    #             epochs, eps, gamma, device)
+    
+    
 def main():
     # env()
-    network()
+    # network_SAC()
+    newwork_PPO()
 
 if __name__ == '__main__':
     main()
