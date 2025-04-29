@@ -17,7 +17,7 @@ class Fish2DEnv():
         self.lambda_3 = reward_cfg["lambda_3"]
         # self.reach_threshold = reward_cfg["reach_threshold"]
         self.counts = 0
-        self.max_episode_steps = 1000
+        self.max_episode_steps = 60
 
         self.theta_avg_total = 0
         self.last_theta_avg_total = 0
@@ -50,9 +50,9 @@ class Fish2DEnv():
         print(formatted_list)
 
         self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
-        print('sleep 1s')
+        # print('sleep 1s')
         time.sleep(1)
-        print('sleep is over!')
+        # print('sleep is over!')
 
 
         # calculate the reward
@@ -86,9 +86,9 @@ class Fish2DEnv():
         # dot_theta = self.fish_detector.get_theta_dot()
         # reward_theta = -dot_theta*self.lambda_1
         
-        # if self.counts >= self.max_episode_steps:
-        #     done = True
-        #     print("Episode steps reach the max!")
+        if self.counts >= self.max_episode_steps:
+            done = True
+            print("Episode steps reach the max!")
 
         self.fish_detector.setup_get_state_flag(True)
         state_array = self.fish_detector.get_state(2,2)
@@ -164,19 +164,26 @@ class Fish2DEnv():
             done = True
             if abs(self.theta_avg_total) > 175:
                 reward_pos = 10
+                print("fish is out but finish!")
             else:
                 reward_pos = -10
+                print("fish is out of the rect!")
             reward = reward_pos 
         else:
             if self.theta_avg_total>175:
                 done = True
                 reward_pos = 10
+                print("fish is finish!")
             else:
                 done = False
                 reward_pos = 0
         print("reward_pos = %f, reward_theta = %f, reward_omega = %f, reward_dis = %f" % (reward_pos, reward_theta, reward_omega, reward_dis))
         reward = reward_pos + reward_theta + reward_omega - reward_dis
         print("reward = %f" % reward)
+        
+        if done == True:
+            self.fish_control.send("CSE",None,None,None,None)
+
         return state_array, reward, done, {}
     
     def reset(self):
@@ -200,8 +207,8 @@ class Fish2DEnv():
         self.omega_trend = 0  # 趋势标记：1递增，-1递减，0初始状态
         self.omega_mono = 1
         self.fish_detector.setup_get_state_flag(False)
-        print(state)
-        print(type(state))
+        # print(state)
+        # print(type(state))
         self.counts = 0
         return state
 

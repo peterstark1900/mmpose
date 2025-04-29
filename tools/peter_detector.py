@@ -88,7 +88,7 @@ class FishDetector():
                 self.mix_anno_flag = writer_cfg.get('mix_anno_flag')
                 # self.fps = self.cap.get(cv2.CAP_PROP_FPS)
                 self.fps = 30
-                print(self.fps)
+                # print(self.fps)
                 # self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
                 self.width = 1920
                 # self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -556,8 +556,8 @@ class FishDetector():
             print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
 
 
-        print("start time: ",self.start_time)
-        print("end time: ", self.end_time)
+        # print("start time: ",self.start_time)
+        # print("end time: ", self.end_time)
         self.duration = self.end_time - self.start_time
         if self.duration.total_seconds() == 0:
             print("Error: duration is 0, please check the time stamp")
@@ -729,7 +729,8 @@ class FishDetector():
                 return False
         else:
             return True
-        
+    def get_exit_flag(self):
+        return self.exit_flag  
     ######################## save operation #######################
 
     def setup_episode_num(self,episode_num):

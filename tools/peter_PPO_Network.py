@@ -136,7 +136,7 @@ class PPOContinuous:
         action_dist = torch.distributions.MultivariateNormal(mu, cov)
         
         action = action_dist.sample()
-        print(action)
+        # print(action)
         # return [action.item()]
 
         B_b = action[:, 1]  
@@ -203,3 +203,18 @@ class PPOContinuous:
             critic_loss.backward()
             self.actor_optimizer.step()
             self.critic_optimizer.step()
+
+    def save_model(self, path):
+        # torch.save(self.actor.state_dict(), path + 'actor.pth')
+        # torch.save(self.critic.state_dict(), path + 'critic.pth')
+        torch.save({
+            'actor': self.actor.state_dict(),
+            'critic': self.critic.state_dict(),
+        },path)
+
+    def load_model(self, path):
+        # self.actor.load_state_dict(torch.load(path + 'actor.pth'))
+        # self.critic.load_state_dict(torch.load(path + 'critic.pth'))
+        checkpoint = torch.load(path)
+        self.actor.load_state_dict(checkpoint['actor'])
+        self.critic.load_state_dict(checkpoint['critic'])

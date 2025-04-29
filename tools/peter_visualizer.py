@@ -278,13 +278,12 @@ class Visualizer():
     
     def mini_pipeline(self,file_path):
         self.load_data(file_path)
-        # self.calculate_avg_fps()
-        # if self.export_flag:
-        #     self.setup_video_out(file_path)
-        # self.show_animation()
-        self.draw_static_analysis()
-        # self.draw_trajectory()
-        # self.draw_trajectory(selected_kp=self.keypoints[0])
+        self.calculate_avg_fps()
+        if self.export_flag:
+            self.setup_video_out(file_path)
+        self.show_animation()
+        # self.draw_static_analysis()
+        self.draw_trajectory(selected_kp=self.keypoints[0])
         
        
     # def json_to_mp4(self):
@@ -307,7 +306,7 @@ def main():
         'background_color': (255, 255, 255)
     }
 
-    file_path = r"E:\output\json\2025-04-28-22-27-16_8.json"
+    file_path = r"E:\output\json\2025-04-29-20-36-07_1.json"
 
     
     visualizer = Visualizer(vis_cofig_dict)
