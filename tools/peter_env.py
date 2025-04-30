@@ -17,7 +17,7 @@ class Fish2DEnv():
         self.lambda_3 = reward_cfg["lambda_3"]
         # self.reach_threshold = reward_cfg["reach_threshold"]
         self.counts = 0
-        self.max_episode_steps = 60
+        self.max_episode_steps = 5
 
         self.theta_avg_total = 0
         self.last_theta_avg_total = 0
@@ -102,31 +102,31 @@ class Fish2DEnv():
 
         self.theta_avg_total = self.theta_avg_total + theta_avg
 
-        if self.last_theta_avg_total is None:
-            # At the frist time 
-            self.theta_avg_total_mono += 2  
-            # update the omega_trend
-            self.theta_avg_total_trend = 1 if self.theta_avg_total > 0 else (-1 if self.theta_avg_total < 0 else 0)
-            # 1 if current angle (theta_avg) is greater than previous angle (last_theta_avg)
-            # -1 if current angle is less than previous angle
-            # 0 if angles are equal (no change)
+        # if self.last_theta_avg_total is None:
+        #     # At the frist time 
+        #     self.theta_avg_total_mono += 2  
+        #     # update the omega_trend
+        #     self.theta_avg_total_trend = 1 if self.theta_avg_total > 0 else (-1 if self.theta_avg_total < 0 else 0)
+        #     # 1 if current angle (theta_avg) is greater than previous angle (last_theta_avg)
+        #     # -1 if current angle is less than previous angle
+        #     # 0 if angles are equal (no change)
 
-        else:
-            theta_avg_total_direction = 1 if self.theta_avg_total > self.last_theta_avg_total else (-1 if self.theta_avg_total < self.last_theta_avg_total else 0)
-            # 1 if current angle (theta_avg) is greater than previous angle (last_theta_avg)
-            # -1 if current angle is less than previous angle
-            # 0 if angles are equal (no change)
+        # else:
+        #     theta_avg_total_direction = 1 if self.theta_avg_total > self.last_theta_avg_total else (-1 if self.theta_avg_total < self.last_theta_avg_total else 0)
+        #     # 1 if current angle (theta_avg) is greater than previous angle (last_theta_avg)
+        #     # -1 if current angle is less than previous angle
+        #     # 0 if angles are equal (no change)
 
-            if theta_avg_total_direction == self.theta_avg_total_trend:
-                # when theta_avg is 
-                self.theta_avg_total_mono += 2  # 趋势持续时奖励递增
-            else:
-                self.theta_avg_total_mono = -1 # 趋势改变时奖励递减
-            # update the omega_trend
-            self.theta_avg_total_trend = theta_avg_total_direction     
+        #     if theta_avg_total_direction == self.theta_avg_total_trend:
+        #         # when theta_avg is 
+        #         self.theta_avg_total_mono += 2  # 趋势持续时奖励递增
+        #     else:
+        #         self.theta_avg_total_mono = -1 # 趋势改变时奖励递减
+        #     # update the omega_trend
+        #     self.theta_avg_total_trend = theta_avg_total_direction     
             
-        # update the last_theta_avg
-        self.last_theta_avg_total = self.theta_avg_total
+        # # update the last_theta_avg
+        # self.last_theta_avg_total = self.theta_avg_total
         
         if self.last_omega_avg is None:
             # At the frist time 
@@ -157,9 +157,9 @@ class Fish2DEnv():
         # update the last_theta_avg
         self.last_omega_avg = omega_avg
 
-        reward_theta = self.lambda_1*self.theta_avg_total_mono*abs(self.theta_avg_total) 
+        # reward_theta = self.lambda_1*self.theta_avg_total_mono*abs(self.theta_avg_total) 
         reward_omega = self.lambda_2*self.omega_mono*abs(omega_avg)
-        reward_dis = self.lambda_3*velocity_avg
+        # reward_dis = self.lambda_3*velocity_avg
         if not self.fish_detector.is_in_rect():
             done = True
             if abs(self.theta_avg_total) > 175:
@@ -177,9 +177,10 @@ class Fish2DEnv():
             else:
                 done = False
                 reward_pos = 0
-        print("reward_pos = %f, reward_theta = %f, reward_omega = %f, reward_dis = %f" % (reward_pos, reward_theta, reward_omega, reward_dis))
-        reward = reward_pos + reward_theta + reward_omega - reward_dis
-        print("reward = %f" % reward)
+        # print("reward_pos = %f, reward_theta = %f, reward_omega = %f, reward_dis = %f" % (reward_pos, reward_theta, reward_omega, reward_dis))
+        # reward = reward_pos + reward_theta + reward_omega - reward_dis
+        # print("reward = %f" % reward)
+        reward =  reward_omega
         
         if done == True:
             self.fish_control.send("CSE",None,None,None,None)
