@@ -29,6 +29,12 @@ class Fish2DEnv():
         self.omega_trend = 0  # 趋势标记：1递增，-1递减，0初始状态
         self.omega_mono = 1
 
+        self.last_theta_avg = None
+        self.theta_trend = 0  # 趋势标记：1递增，-1递减，0初始状态
+        self.theta_mono = 1
+
+
+
 
     def step(self, action):
         '''
@@ -157,6 +163,35 @@ class Fish2DEnv():
         # update the last_theta_avg
         self.last_omega_avg = omega_avg
 
+        if self.last_theta_avg is None:
+            # At the frist time 
+            self.theta_mono += 2  
+            # update the theta_trend
+            self.theta_trend = 1 if theta_avg > 0 else (-1 if theta_avg < 0 else 0)
+            # 1 if current angle (theta_avg) is greater than previous angle (last_theta_avg)
+            # -1 if current angle is less than previous angle
+            # 0 if angles are equal (no change)
+
+        else:
+            theta_direction = 1 if theta_avg > self.last_theta_avg else (-1 if theta_avg < self.last_theta_avg else 0)
+            # 1 if current angle (theta_avg) is greater than previous angle (last_theta_avg)
+            # -1 if current angle is less than previous angle
+            # 0 if angles are equal (no change)
+            if theta_direction != 0:
+                if theta_direction == self.theta_trend:
+                    # when theta_avg is 
+                    self.theta_mono += 2  # 趋势持续时奖励递增
+                else:
+                    self.theta_mono = -1 # 趋势改变时奖励递减
+                # update the theta_trend
+                self.theta_trend = theta_direction     
+            else:
+                # when theta_avg does not change, the reward will be the same as the last time
+                # theta_trend would not update in this case
+                self.theta_mono = 1  # 趋势不变时奖励不变
+        # update the last_theta_avg
+        self.last_theta_avg = theta_avg
+
         # reward_theta = self.lambda_1*self.theta_avg_total_mono*abs(self.theta_avg_total) 
         reward_omega = self.lambda_2*self.omega_mono*abs(omega_avg)
         # reward_dis = self.lambda_3*velocity_avg
@@ -181,6 +216,7 @@ class Fish2DEnv():
         # reward = reward_pos + reward_theta + reward_omega - reward_dis
         # print("reward = %f" % reward)
         reward =  reward_omega
+        print("reward = %f" % reward, "theta_avg = %f" % theta_avg, "omega_avg = %f" % omega_avg, "displacement_avg = %f" % displacement_avg, "velocity_avg = %f" % velocity_avg)
         
         if done == True:
             self.fish_control.send("CSE",None,None,None,None)

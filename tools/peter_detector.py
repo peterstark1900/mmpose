@@ -54,7 +54,7 @@ class FishDetector():
         self.detect_type = capture_cfg.get('detect_type')
         if self.detect_type == 'camera':
             # self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
-            self.cap = cv2.VideoCapture(0)
+            self.cap = cv2.VideoCapture(1)
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             self.cap.set(cv2.CAP_PROP_FPS, 30)
@@ -311,25 +311,25 @@ class FishDetector():
                 if 10 <= x-(self.win_width-self.control_width) <= 110 and 10 <= y <= 60:
                     self.edit_rect_mode = not self.edit_rect_mode
                     self.edit_button_color = (0, 255, 0) if self.edit_rect_mode else (0, 0, 255)
-                    print(f"Edit mode: {'ON' if self.edit_rect_mode else 'OFF'}")
+                    # print(f"Edit mode: {'ON' if self.edit_rect_mode else 'OFF'}")
                 # 目标按钮区域 (10,70)-(110,120)
                 if 10 <= x-(self.win_width-self.control_width) <= 110 and 70 <= y <= 120:
                     self.set_target_mode = not self.set_target_mode
                     self.target_button_color = (0, 255, 0) if self.set_target_mode else (0, 0, 255)
-                    print(f"Target mode: {'ON' if self.set_target_mode else 'OFF'}")
+                    # print(f"Target mode: {'ON' if self.set_target_mode else 'OFF'}")
                 # 检测按钮区域 (10,130)-(110,180)
                 if 10 <= x-(self.win_width-self.control_width) <= 110 and 130 <= y <= 180:
                     self.detect_flag = not self.detect_flag
                     self.detect_button_color = (0, 255, 0) if self.detect_flag else (0, 0, 255)
-                    print(f"Detect mode: {'ON' if self.detect_flag else 'OFF'}")    
+                    # print(f"Detect mode: {'ON' if self.detect_flag else 'OFF'}")    
                 # 训练按钮区域 (10,190)-(110,240)   
                 if 10 <= x-(self.win_width-self.control_width) <= 110 and 190 <= y <= 240:
                     self.train_flag = not self.train_flag
                     self.train_button_color = (0, 255, 0) if self.train_flag else (0, 0, 255)
-                    print(f"Train mode: {'ON' if self.train_flag else 'OFF'}")
+                    # print(f"Train mode: {'ON' if self.train_flag else 'OFF'}")
                     self.detect_flag = not self.detect_flag
                     self.detect_button_color = (0, 255, 0) if self.detect_flag else (0, 0, 255)
-                    print(f"Detect mode: {'ON' if self.detect_flag else 'OFF'}")
+                    # print(f"Detect mode: {'ON' if self.detect_flag else 'OFF'}")
                 # 退出按钮区域 (10,250)-(110,300)
                 if 10 <= x-(self.win_width-self.control_width) <= 110 and 250 <= y <= 300:
                     self.exit_flag = not self.exit_flag
@@ -342,16 +342,16 @@ class FishDetector():
         '''
         if self.train_flag == True:
             self.train_button_color = (0, 255, 0)
-            print("\nTrain mode: ON")
+            # print("\nTrain mode: ON")
             self.detect_flag = True
             self.detect_button_color = (0, 255, 0)
-            print("Detect mode: ON")
+            # print("Detect mode: ON")
         else:
             self.train_button_color = (0, 0, 255)
-            print("\nTrain mode: OFF")
+            # print("\nTrain mode: OFF")
             self.detect_flag = False
             self.detect_button_color = (0, 0, 255)
-            print("Detect mode: OFF")
+            # print("Detect mode: OFF")
 
     def display_annotation(self):
         self.frame = cv2.resize(self.frame, (self.win_width - self.control_width, self.win_height))
@@ -775,7 +775,7 @@ class FishDetector():
         # if the path does not exist, create it
         if not os.path.exists(self.json_output_path):
             os.makedirs(self.json_output_path)
-        print(f"Json will be save to: {self.output_json_file}") 
+        # print(f"Json will be save to: {self.output_json_file}") 
     def update_frame_stamps(self):
         self.frame_stamps.append(self.keypoint_stamp)
         self.time_stamps.append(str(self.time_stamp)) 

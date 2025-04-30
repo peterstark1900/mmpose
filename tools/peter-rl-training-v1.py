@@ -312,52 +312,53 @@ class train():
                     # if (i_episode+1) % 10 == 0:
                     #     pbar.set_postfix({'episode': '%d' % (num_episodes/10 * i + i_episode+1), 'return': '%.3f' % np.mean(return_list[-10:])})
                     pbar.update(1)
+                    if (i_episode + 1) % 3 == 0:
+                        current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+                        save_path = f'sac_model_{current_time}.pth'
+                        agent.save_model(save_path)
+                        print(f'\nModel saved to {save_path}')
+                        
+                        # 新增return_list保存
+                        return_path = f'return_list_{current_time}.txt'
+                        with open(return_path, 'w') as f:
+                            for item in return_list:
+                                f.write(f"{item}\n")
+                        print(f'Return list saved to {return_path}')
 
-        # filename ='reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.txt'
-        # with open(filename, 'w') as file:
-        #     for item in return_list:
-        #         file.write(str(item) + '\n')
-        # # save the model 
-        # current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-        # save_path = f'sac_model_{current_time}.pth'
-        # agent.save_model(save_path)
-        # print(f'Model saved to {save_path}')
-        # result_queue.put(return_list)
-        # return return_list 
+                        # 统一清理旧文件
+                        # for pattern in ['sac_model_*.pth', 'return_list_*.txt']:
+                        #     files = sorted(glob.glob(pattern), 
+                        #                 key=os.path.getmtime, 
+                        #                 reverse=True)
+                        #     for old_file in files[2:]:
+                        #         os.remove(old_file)
+                        #         print(f'Removed old file: {old_file}') 
+                        # 统一清理旧文件（安全版本）
+                        current_prefix = datetime.datetime.now().strftime('%Y%m%d_%H%M')
+                        for pattern in [f'sac_model_{current_prefix[:8]}*.pth', 
+                                    f'return_list_{current_prefix[:8]}*.txt']:
+                            files = sorted(glob.glob(pattern),
+                                        key=os.path.getmtime,
+                                        reverse=True)
+                            # 只保留当天的文件且最近2个
+                            keep_files = files[:2]
+                            for old_file in set(files) - set(keep_files):
+                                os.remove(old_file)
+                                print(f'Removed old file: {old_file}')
 
-        if (i_episode + 1) % 3 == 0:
-            current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
-            save_path = f'sac_model_{current_time}.pth'
-            agent.save_model(save_path)
-            print(f'\nModel saved to {save_path}')
-            
-            # 新增return_list保存
-            return_path = f'return_list_{current_time}.txt'
-            with open(return_path, 'w') as f:
-                for item in return_list:
-                    f.write(f"{item}\n")
-            print(f'Return list saved to {return_path}')
+        filename ='reward_'+datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')+'.txt'
+        with open(filename, 'w') as file:
+            for item in return_list:
+                file.write(str(item) + '\n')
+        # save the model 
+        current_time = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        save_path = f'sac_model_{current_time}.pth'
+        agent.save_model(save_path)
+        print(f'Model saved to {save_path}')
+        result_queue.put(return_list)
+        return return_list 
 
-            # 统一清理旧文件
-            # for pattern in ['sac_model_*.pth', 'return_list_*.txt']:
-            #     files = sorted(glob.glob(pattern), 
-            #                 key=os.path.getmtime, 
-            #                 reverse=True)
-            #     for old_file in files[2:]:
-            #         os.remove(old_file)
-            #         print(f'Removed old file: {old_file}') 
-            # 统一清理旧文件（安全版本）
-            current_prefix = datetime.datetime.now().strftime('%Y%m%d_%H%M')
-            for pattern in [f'sac_model_{current_prefix[:8]}*.pth', 
-                          f'return_list_{current_prefix[:8]}*.txt']:
-                files = sorted(glob.glob(pattern),
-                             key=os.path.getmtime,
-                             reverse=True)
-                # 只保留当天的文件且最近2个
-                keep_files = files[:2]
-                for old_file in set(files) - set(keep_files):
-                    os.remove(old_file)
-                    print(f'Removed old file: {old_file}')
+        
         
                
 
