@@ -246,7 +246,7 @@ class train():
 
         actor_lr = 1e-3
         critic_lr = 1e-2
-        num_episodes = 30
+        num_episodes = 10
         hidden_dim = 128
         gamma = 0.98
         lmbda = 0.95
@@ -365,7 +365,7 @@ class train():
 def main():
     anno_cfg_dict = {
         'my_anno_flag': True,
-        'current_rect': (175, 100, 1795, 975),
+        'current_rect': (125, 50, 1795, 1025),
         'target_x': 1300,
         'target_y': 700,
         'drag_threshold': 5,
