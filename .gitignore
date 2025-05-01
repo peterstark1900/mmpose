@@ -137,3 +137,4 @@ docs/**/modelzoo.md
 *.mp4
 frame_stamps.json
 reward_*.png
+reward_*.txt
