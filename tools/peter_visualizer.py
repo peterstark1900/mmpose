@@ -71,8 +71,8 @@ class Visualizer():
             self.data['info'].extend(temp_data['info'])
 
     def setup_video_out(self,original_json_path):
-        # self.vidoe_name = self.output_folder+'\\'+original_json_path.split('\\')[-1].split('.')[0] + '.mp4'
-        self.vidoe_name = self.output_folder+'/'+original_json_path.split('/')[-1].split('.')[0] + '.mp4'
+        self.vidoe_name = self.output_folder+'\\'+original_json_path.split('\\')[-1].split('.')[0] + '.mp4'
+        # self.vidoe_name = self.output_folder+'/'+original_json_path.split('/')[-1].split('.')[0] + '.mp4'
 
         print(self.vidoe_name)
         self.video_out = cv2.VideoWriter(self.vidoe_name, cv2.VideoWriter_fourcc(*'mp4v'), self.fps, (1920, 1080))
@@ -507,17 +507,17 @@ class Visualizer():
             print("Animation is over!")
 
     def mini_pipeline(self,file_path):
-        # self.load_data_file(file_path)
-        # self.calculate_avg_fps()
-        # if self.export_flag:
-        #     self.setup_video_out(file_path)
-        # self.show_animation()
-        # # self.draw_static_analysis()
-        # self.draw_trajectory(selected_kp=self.keypoints[0])
+        self.load_data_file(file_path)
+        self.calculate_avg_fps()
+        if self.export_flag:
+            self.setup_video_out(file_path)
+        self.show_animation()
+        # self.draw_static_analysis()
+        self.draw_trajectory(selected_kp=self.keypoints[0])
 
-        self.load_data_folder(file_path)
-        self.merge_data()
-        self.draw_static_analysis(split_list=['theta','omega','displacement','velocity','duration'],merge_list=['theta','omega','displacement','velocity','duration'])
+        # self.load_data_folder(file_path)
+        # self.merge_data()
+        # self.draw_static_analysis(split_list=['theta','omega','displacement','velocity','duration'],merge_list=['theta','omega','displacement','velocity','duration'])
 
     def mac_pipeline(self,file_cfg):
         # self.load_data_folder(file_cfg)
@@ -571,9 +571,10 @@ def main():
     }
 
     # file_path = r"E:\output\json\2025-04-29-20-36-07_1.json"
-    
+    # file_path = r"E:\output\debug\2025-05-01-16-36-14_1.json"
+    file_path = r"E:\output\debug\2025-05-01-16-37-19_4.json"
     # file_path = "/Users/peter/code/debug/2025-04-30-21-56-48_0.json"
-    file_path = "/Users/peter/code/debug/2025-04-30-21-57-45_2.json"
+    # file_path = "/Users/peter/code/debug/2025-04-30-21-57-45_2.json"
     # file_path ="/Users/peter/code/debug/2025-04-30-21-59-27_7.json"
     # file_path = "/Users/peter/code/debug/2025-04-30-22-00-07_9.json"
     # file_folder = "/Users/peter/code/debug"
@@ -582,8 +583,8 @@ def main():
 
     
     visualizer = Visualizer(vis_cofig_dict)
-    # visualizer.mini_pipeline(file_path)
-    visualizer.mini_pipeline(file_folder)
+    visualizer.mini_pipeline(file_path)
+    # visualizer.mini_pipeline(file_folder)
     # visualizer.mac_pipeline(file_folder)
     # visualizer.mac_pipeline(file_path)
     
