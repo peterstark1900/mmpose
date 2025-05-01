@@ -288,20 +288,20 @@ class Visualizer():
                 plt.legend()
 
                 if operate == 'theta':
-                    # plt.savefig(self.output_folder+'\\'+'theta_avg.png')
-                    plt.savefig(self.output_folder+'/'+'theta_avg.png')
+                    plt.savefig(self.output_folder+'\\'+'theta_avg.png')
+                    # plt.savefig(self.output_folder+'/'+'theta_avg.png')
                 if operate == 'omega':
-                    # plt.savefig(self.output_folder+'\\'+'omega_avg.png')
-                    plt.savefig(self.output_folder+'/'+'omega_avg.png')
+                    plt.savefig(self.output_folder+'\\'+'omega_avg.png')
+                    # plt.savefig(self.output_folder+'/'+'omega_avg.png')
                 if operate == 'displacement':
-                    # plt.savefig(self.output_folder+'\\'+'displacement.png')
-                    plt.savefig(self.output_folder+'/'+'displacement.png')
+                    plt.savefig(self.output_folder+'\\'+'displacement.png')
+                    # plt.savefig(self.output_folder+'/'+'displacement.png')
                 if operate =='velocity':
-                    # plt.savefig(self.output_folder+'\\'+'velocity.png')
-                    plt.savefig(self.output_folder+'/'+'velocity.png')
+                    plt.savefig(self.output_folder+'\\'+'velocity.png')
+                    # plt.savefig(self.output_folder+'/'+'velocity.png')
                 if operate == 'duration':
-                    # plt.savefig(self.output_folder+'\\'+'duration.png')
-                    plt.savefig(self.output_folder+'/'+'duration.png')
+                    plt.savefig(self.output_folder+'\\'+'duration.png')
+                    # plt.savefig(self.output_folder+'/'+'duration.png')
                 # plt.close()
         if merge_list is not None:
             plt.style.use('bmh')
@@ -331,7 +331,8 @@ class Visualizer():
 
                 plt.grid(True)
                 plt.legend()
-                plt.savefig(self.output_folder+'/'+'total_state.png')
+                # plt.savefig(self.output_folder+'/'+'total_state.png')
+                plt.savefig(self.output_folder+'\\'+'total_state.png')
                 # plt.close()
     def draw_trajectory(self,selected_kp=None):
         if self.data is None:
@@ -506,13 +507,17 @@ class Visualizer():
             print("Animation is over!")
 
     def mini_pipeline(self,file_path):
-        self.load_data_file(file_path)
-        self.calculate_avg_fps()
-        if self.export_flag:
-            self.setup_video_out(file_path)
-        self.show_animation()
-        # self.draw_static_analysis()
-        self.draw_trajectory(selected_kp=self.keypoints[0])
+        # self.load_data_file(file_path)
+        # self.calculate_avg_fps()
+        # if self.export_flag:
+        #     self.setup_video_out(file_path)
+        # self.show_animation()
+        # # self.draw_static_analysis()
+        # self.draw_trajectory(selected_kp=self.keypoints[0])
+
+        self.load_data_folder(file_path)
+        self.merge_data()
+        self.draw_static_analysis(split_list=['theta','omega','displacement','velocity','duration'],merge_list=['theta','omega','displacement','velocity','duration'])
 
     def mac_pipeline(self,file_cfg):
         # self.load_data_folder(file_cfg)
@@ -548,8 +553,8 @@ class Visualizer():
 def main():
 
     vis_cofig_dict = {
-        # 'output_folder': r"E:\output\json", 
-        'output_folder': "/Users/peter/code/debug", 
+        'output_folder': r"E:\output\debug", 
+        # 'output_folder': "/Users/peter/code/debug", 
         # 'output_folder': None, 
         'fps': 30,  # 每秒帧数    
         'add_fps': False, # 是否添加fps信息
@@ -571,14 +576,16 @@ def main():
     file_path = "/Users/peter/code/debug/2025-04-30-21-57-45_2.json"
     # file_path ="/Users/peter/code/debug/2025-04-30-21-59-27_7.json"
     # file_path = "/Users/peter/code/debug/2025-04-30-22-00-07_9.json"
-    file_folder = "/Users/peter/code/debug"
+    # file_folder = "/Users/peter/code/debug"
+    file_folder =r"E:\output\debug"
 
 
     
     visualizer = Visualizer(vis_cofig_dict)
     # visualizer.mini_pipeline(file_path)
+    visualizer.mini_pipeline(file_folder)
     # visualizer.mac_pipeline(file_folder)
-    visualizer.mac_pipeline(file_path)
+    # visualizer.mac_pipeline(file_path)
     
 
 if __name__ == '__main__':

@@ -10,14 +10,15 @@ class Fish2DEnv():
 
         self.fish_detector =fish_detector
 
-        # self.fish_control = SerialAction(serial_cfg)
+        self.fish_control = SerialAction(serial_cfg)
 
         self.lambda_1 = reward_cfg["lambda_1"]
         self.lambda_2 = reward_cfg["lambda_2"]
         self.lambda_3 = reward_cfg["lambda_3"]
         # self.reach_threshold = reward_cfg["reach_threshold"]
-        self.counts = 0
-        self.max_episode_steps = 5
+        self.elapsed_time = None
+        self.max_episode_duration = 5
+        self.episode_start_time = None
 
         self.theta_avg_total = 0
         self.last_theta_avg_total = 0
@@ -43,7 +44,8 @@ class Fish2DEnv():
         next_state, reward, self.done, _ = env.step(action)
         '''
 
-        self.counts += 1
+        self.elapsed_time =  time.time() - self.episode_start_time
+        print(f"Elapsed time: {self.elapsed_time:.2f}s")
 
         action_list = action.flatten().tolist()
         formatted_list = []
@@ -52,9 +54,9 @@ class Fish2DEnv():
             formatted_list.append(f"{rounded:02d}")   
         print(formatted_list)
 
-        # self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
+        self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
         # print('sleep 1s')
-        time.sleep(3)
+        time.sleep(1)
         # print('sleep is over!')
 
 
@@ -88,10 +90,11 @@ class Fish2DEnv():
         # self.fish_detector.calculate_theta_dot()
         # dot_theta = self.fish_detector.get_theta_dot()
         # reward_theta = -dot_theta*self.lambda_1
-        print(self.counts >= self.max_episode_steps)
-        if self.counts >= self.max_episode_steps:
+        print(self.elapsed_time >= self.max_episode_duration)
+        if self.elapsed_time >= self.max_episode_duration:
             self.done = True
-            print("Episode steps reach the max!")
+            # print("Episode steps reach the max!")
+            print("Episode duration exceeded 5s!")
 
         self.fish_detector.setup_get_state_flag(True)
         state_array = self.fish_detector.get_state()
@@ -215,10 +218,10 @@ class Fish2DEnv():
         # reward = reward_pos + reward_theta + reward_omega - reward_dis
         # print("reward = %f" % reward)
         reward =  reward_omega
-        print("counts = %f"%self.counts, "reward = %f" % reward, "theta_avg = %f" % theta_avg, "omega_avg = %f" % omega_avg, "displacement_avg = %f" % displacement_avg, "velocity_avg = %f" % velocity_avg)
+        print("elapsed_time = %f"%self.elapsed_time, "reward = %f" % reward, "theta_avg = %f" % theta_avg, "omega_avg = %f" % omega_avg, "displacement_avg = %f" % displacement_avg, "velocity_avg = %f" % velocity_avg)
         
-        # if self.done == True:
-        #     self.fish_control.send("CSE",None,None,None,None)
+        if self.done == True:
+            self.fish_control.send("CSE",None,None,None,None)
 
         return state_array, reward, self.done, {}
     
@@ -245,7 +248,8 @@ class Fish2DEnv():
         self.fish_detector.setup_get_state_flag(False)
         # print(state)
         # print(type(state))
-        self.counts = 0
+
+        self.episode_start_time = time.time()  
         self.done = False
         return state
 

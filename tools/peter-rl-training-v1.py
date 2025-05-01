@@ -285,7 +285,7 @@ class train():
                     # detector.setup_video_out()
                     detector.setup_frame_stamps()
                     # detector.set_save_state(True)
-                    time.sleep(3)
+                    time.sleep(1)
                     state = env.reset()
                     done = False
                     while not done:
