@@ -99,7 +99,7 @@ class train():
         #                     # print('\r continue training: '+str(detector.is_in_rect())+' Distance: '+str(distance_current)+' Theta: '+str(theta_current)+' reward: '+ str(reward), end="")
 
         #                     detector.setup_get_state_flag(True)
-        #                     temp_array = detector.get_state(2,2)
+        #                     temp_array = detector.get_state()
         #                     detector.reset_pos_list()
         #                     print("\n p_hx_avg: "+str(temp_array[0])\
         #                         +"\n p_hy_avg: "+str(temp_array[1])\

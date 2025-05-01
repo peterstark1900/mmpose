@@ -537,23 +537,24 @@ class FishDetector():
             self.distance_last = self.distance_current
         self.distance_current = np.sqrt((self.head_pos[0] - self.target_x)**2 + (self.head_pos[1] - self.target_y)**2)   
 
-    def calculate_state(self, front_len, back_len):
+    # def calculate_state(self, front_len, back_len):÷\
+    def calculate_state(self):
         ''' transform the keypoints to the target coordinate system
         this operation is only valid when there is only one fish in the frame
         '''
 
-        if front_len>len(self.head_pos_list):
-            front_len = len(self.head_pos_list)
-            print("Warning: front_len is larger than the length of the list, set front_len to the length of the list")
-        if back_len>len(self.head_pos_list):
-            back_len = len(self.head_pos_list)
-            print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
-        if front_len>len(self.body_pos_list):
-            front_len = len(self.body_pos_list)
-            print("Warning: front_len is larger than the length of the list, set front_len to the length of the list")
-        if back_len>len(self.body_pos_list):
-            back_len = len(self.body_pos_list)
-            print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
+        # if front_len>len(self.head_pos_list):
+        #     front_len = len(self.head_pos_list)
+        #     print("Warning: front_len is larger than the length of the list, set front_len to the length of the list")
+        # if back_len>len(self.head_pos_list):
+        #     back_len = len(self.head_pos_list)
+        #     print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
+        # if front_len>len(self.body_pos_list):
+        #     front_len = len(self.body_pos_list)
+        #     print("Warning: front_len is larger than the length of the list, set front_len to the length of the list")
+        # if back_len>len(self.body_pos_list):
+        #     back_len = len(self.body_pos_list)
+        #     print("Warning: back_len is larger than the length of the list, set back_len to the length of the list")
 
 
         # print("start time: ",self.start_time)
@@ -568,18 +569,18 @@ class FishDetector():
         # set the left-bottom point as the origin
         origin_x = min(x1, x2)
         origin_y = max(y1, y2)
+        half_length = len(self.head_pos_list)//2
+        h_start = self.head_pos_list[:half_length]
+        ph_start_pos = (sum(x for x, y in h_start)/half_length, sum(y for x, y in h_start)/half_length)
 
-        h_start = self.head_pos_list[:front_len]
-        ph_start_pos = (sum(x for x, y in h_start)/2, sum(y for x, y in h_start)/2)
+        b_start = self.body_pos_list[:half_length]
+        pb_start_pos = (sum(x for x, y in b_start)/half_length, sum(y for x, y in b_start)/half_length)
 
-        b_start = self.body_pos_list[:front_len]
-        pb_start_pos = (sum(x for x, y in b_start)/2, sum(y for x, y in b_start)/2)
+        h_end = self.head_pos_list[-half_length:]
+        ph_end_pos = (sum(x for x, y in h_end)/half_length, sum(y for x, y in h_end)/half_length)
 
-        h_end = self.head_pos_list[-back_len:]
-        ph_end_pos = (sum(x for x, y in h_end)/2, sum(y for x, y in h_end)/2)
-
-        b_end = self.body_pos_list[-back_len:]
-        pb_end_pos = (sum(x for x, y in b_end)/2, sum(y for x, y in b_end)/2)
+        b_end = self.body_pos_list[-half_length:]
+        pb_end_pos = (sum(x for x, y in b_end)/half_length, sum(y for x, y in b_end)/half_length)
 
         # transform the keypoints to the target coordinate system
         ph_start_pos = (ph_start_pos[0] - origin_x, origin_y - ph_start_pos[1])
@@ -687,13 +688,13 @@ class FishDetector():
     #                      self.v_y, \
     #                      self.theta_dot])
 
-    def get_state(self,front_len, back_len):
+    def get_state(self):
         '''
         get the observation space of the fish
         '''
         # calculate the state
         # self.get_state_flag = True
-        self.calculate_state(front_len, back_len)
+        self.calculate_state()
         # self.get_state_flag = False
         # update the record
         

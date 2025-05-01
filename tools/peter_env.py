@@ -94,7 +94,7 @@ class Fish2DEnv():
             print("Episode steps reach the max!")
 
         self.fish_detector.setup_get_state_flag(True)
-        state_array = self.fish_detector.get_state(2,2)
+        state_array = self.fish_detector.get_state()
         self.fish_detector.reset_pos_list()
         self.fish_detector.setup_get_state_flag(False)
 
@@ -233,7 +233,7 @@ class Fish2DEnv():
         # self.fish_detector.calculate_v_x()
         # self.fish_detector.calculate_v_y()
         self.fish_detector.setup_get_state_flag(True)
-        state = self.fish_detector.get_state(2,2)
+        state = self.fish_detector.get_state()
         self.fish_detector.reset_pos_list()
         self.theta_avg_total = 0
         self.last_theta_avg_total = 0
