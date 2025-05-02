@@ -45,6 +45,7 @@ class PPO:
     def take_action(self, state):
         state = torch.tensor([state], dtype=torch.float).to(self.device)
         probs = self.actor(state)
+        print("probs: ",probs)
         action_dist = torch.distributions.Categorical(probs)
         action = action_dist.sample()
         return action.item()
@@ -83,6 +84,20 @@ class PPO:
             critic_loss.backward()
             self.actor_optimizer.step()
             self.critic_optimizer.step()
+    def save_model(self, path):
+        # torch.save(self.actor.state_dict(), path + 'actor.pth')
+        # torch.save(self.critic.state_dict(), path + 'critic.pth')
+        torch.save({
+            'actor': self.actor.state_dict(),
+            'critic': self.critic.state_dict(),
+        },path)
+
+    def load_model(self, path):
+        # self.actor.load_state_dict(torch.load(path + 'actor.pth'))
+        # self.critic.load_state_dict(torch.load(path + 'critic.pth'))
+        checkpoint = torch.load(path)
+        self.actor.load_state_dict(checkpoint['actor'])
+        self.critic.load_state_dict(checkpoint['critic'])
 
 class PolicyNetContinuous(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):

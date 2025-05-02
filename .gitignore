@@ -138,3 +138,5 @@ docs/**/modelzoo.md
 frame_stamps.json
 reward_*.png
 reward_*.txt
+trajectory_*.png
+return_list_*.txt

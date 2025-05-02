@@ -54,7 +54,7 @@ class FishDetector():
         self.detect_type = capture_cfg.get('detect_type')
         if self.detect_type == 'camera':
             # self.cap = cv2.VideoCapture(capture_cfg.get('capture_num'))
-            self.cap = cv2.VideoCapture(1)
+            self.cap = cv2.VideoCapture(0)
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
             self.cap.set(cv2.CAP_PROP_FPS, 30)
@@ -597,7 +597,8 @@ class FishDetector():
         # theta_avg = np.arccos(cos_theta)
         initial_rad = np.arctan2(vec_initial[1], vec_initial[0])
         end_rad = np.arctan2(vec_end[1], vec_end[0])
-        theta_avg = np.degrees(end_rad) - np.degrees(initial_rad)
+        # theta_avg = np.degrees(end_rad) - np.degrees(initial_rad)
+        theta_avg = end_rad - initial_rad # use rad instead of deg
 
         # calculate the average omega
         omeag_avg = theta_avg/self.duration.total_seconds()

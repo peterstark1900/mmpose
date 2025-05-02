@@ -10,7 +10,7 @@ class Fish2DEnv():
 
         self.fish_detector =fish_detector
 
-        self.fish_control = SerialAction(serial_cfg)
+        # self.fish_control = SerialAction(serial_cfg)
 
         self.lambda_1 = reward_cfg["lambda_1"]
         self.lambda_2 = reward_cfg["lambda_2"]
@@ -47,14 +47,23 @@ class Fish2DEnv():
         self.elapsed_time =  time.time() - self.episode_start_time
         print(f"Elapsed time: {self.elapsed_time:.2f}s")
 
-        action_list = action.flatten().tolist()
-        formatted_list = []
-        for i in range(len(action_list)):
-            rounded = round(action_list[i])
-            formatted_list.append(f"{rounded:02d}")   
-        print(formatted_list)
+        # # continous action
+        # action_list = action.flatten().tolist()
+        # formatted_list = []
+        # for i in range(len(action_list)):
+        #     rounded = round(action_list[i])
+        #     formatted_list.append(f"{rounded:02d}")   
+        # print(formatted_list)
 
-        self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
+        # self.fish_control.send('CRE',formatted_list[0], formatted_list[1], formatted_list[2], formatted_list[3])
+        print("action is: ",action)
+        # # discrete action
+        # if action == 0:
+        #     self.fish_control.send("CSE",None,None,None,None)
+        # elif action == 1:
+        #     self.fish_control.send('CRE', '50', '30', '05', '40')
+        # elif action == 2:
+        #     self.fish_control.send('CRE', '40', '15', '15', '10')
         # print('sleep 1s')
         time.sleep(1)
         # print('sleep is over!')
@@ -218,12 +227,16 @@ class Fish2DEnv():
         # reward = reward_pos + reward_theta + reward_omega - reward_dis
         # print("reward = %f" % reward)
         reward =  reward_omega
+        # reward =  10
         print("elapsed_time = %f"%self.elapsed_time, "reward = %f" % reward, "theta_avg = %f" % theta_avg, "omega_avg = %f" % omega_avg, "displacement_avg = %f" % displacement_avg, "velocity_avg = %f" % velocity_avg)
         
-        if self.done == True:
-            self.fish_control.send("CSE",None,None,None,None)
-
-        return state_array, reward, self.done, {}
+        # if self.done == True:
+        #     self.fish_control.send("CSE",None,None,None,None)
+        
+        mean_state_array = state_array.mean()
+        std_state_array = state_array.std()
+        standard_state_array = (state_array - mean_state_array) / (std_state_array)
+        return standard_state_array, reward, self.done, {}
     
     def reset(self):
         '''
@@ -251,7 +264,12 @@ class Fish2DEnv():
 
         self.episode_start_time = time.time()  
         self.done = False
-        return state
+
+        state_mean = state.mean()
+        state_std = state.std()
+        standard_state = (state - state_mean) / (state_std)
+
+        return standard_state
 
     def close(self):
         return None
