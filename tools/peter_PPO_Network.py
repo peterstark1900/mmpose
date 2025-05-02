@@ -98,6 +98,7 @@ class PPO:
         checkpoint = torch.load(path)
         self.actor.load_state_dict(checkpoint['actor'])
         self.critic.load_state_dict(checkpoint['critic'])
+        print("load model success")
 
 class PolicyNetContinuous(torch.nn.Module):
     def __init__(self, state_dim, hidden_dim, action_dim):

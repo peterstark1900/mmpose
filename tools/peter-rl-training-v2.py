@@ -31,7 +31,7 @@ class train():
 
     
 
-    def rl_train_on_policy(self,detector, serial_cfg = None, reward_cfg = None, result_queue = None):
+    def rl_train_on_policy(self,detector, serial_cfg = None, reward_cfg = None, result_queue = None, model_pth =None):
 
         env = Fish2DEnv(detector, serial_cfg, reward_cfg)
         state_dim = 10
@@ -57,6 +57,9 @@ class train():
         device = torch.device("cuda") if torch.cuda.is_available() else torch.device(
             "cpu")
         agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,epochs, eps, gamma, device)
+        if model_pth is not None:
+            agent.load_model(model_pth)
+            print(f"Model loaded from {model_pth}")
         return_list = []
         # for i in range(10):
         #     with tqdm(total=int(num_episodes/10), desc='Iteration %d' % i) as pbar:
@@ -235,6 +238,9 @@ def main():
     # training_thread.start()
 
     training_thread = threading.Thread(target=my_train.rl_train_on_policy, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict,result_queue))
+    # model_pth = r"E:\openmmlab\mmpose\sac_model_20250502_141237.pth"
+    # training_thread = threading.Thread(target=my_train.rl_train_on_policy, args=(my_detector,my_serial_config_dict,my_reward_cfg_dict, result_queue,model_pth))
+    
     # training_thread = threading.Thread(target=rl_train_off_policy, args=(my_detector, result_queue))
     training_thread.daemon = True
     training_thread.start()
