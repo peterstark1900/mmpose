@@ -45,9 +45,10 @@ class e2e():
         self.agent = PPO(state_dim, hidden_dim, action_dim, actor_lr, critic_lr, lmbda,epochs, eps, gamma, device)
         # load model
         self.agent.load_model(actor_pth)
-        
+
         self.times = 0
         self.reset_flag = False
+        self.is_stopped = False
   
     def set_exit_flag(self,flag):
         self.exit_flag = flag
@@ -56,11 +57,11 @@ class e2e():
         while True:  
             if self.detector.get_exit_flag() or self.exit_flag == True:  # 添加退出标志检测
                 self.exit_flag = True
-                break
             while not self.detector.get_train_flag() and not self.detector.get_exit_flag():
                 print("\r Waiting for start...",end="")
-                self.reset_flag = True
-                time.sleep(0.1) #avoid busy waiting
+                if not self.reset_flag:  # 检查是否已经停止
+                    self.reset_flag = True
+                    self.fish_control.send("CSE",None,None,None,None)
             if self.detector.get_exit_flag() or self.exit_flag == True:  # 再次检测退出标志
                 self.exit_flag = True
                 break
