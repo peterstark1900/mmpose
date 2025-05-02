@@ -258,6 +258,9 @@ class Visualizer():
             displacement_list.append(state_stamp['displacement_avg'])
             velocity_list.append(state_stamp['velocity_avg'])
             duration_list.append(state_stamp['duration'])
+        # add abs() on displacement_list and velocity_list
+        displacement_list = [abs(x) for x in displacement_list]
+        velocity_list = [abs(x) for x in velocity_list]
         if split_list is not None:
             for operate in split_list:
                 plt.style.use('bmh')
@@ -507,17 +510,17 @@ class Visualizer():
             print("Animation is over!")
 
     def mini_pipeline(self,file_path):
-        self.load_data_file(file_path)
-        self.calculate_avg_fps()
-        if self.export_flag:
-            self.setup_video_out(file_path)
-        self.show_animation()
-        # self.draw_static_analysis()
-        self.draw_trajectory(selected_kp=self.keypoints[0])
+        # self.load_data_file(file_path)
+        # self.calculate_avg_fps()
+        # if self.export_flag:
+        #     self.setup_video_out(file_path)
+        # self.show_animation()
+        # # self.draw_static_analysis()
+        # self.draw_trajectory(selected_kp=self.keypoints[0])
 
-        # self.load_data_folder(file_path)
-        # self.merge_data()
-        # self.draw_static_analysis(split_list=['theta','omega','displacement','velocity','duration'],merge_list=['theta','omega','displacement','velocity','duration'])
+        self.load_data_folder(file_path)
+        self.merge_data()
+        self.draw_static_analysis(split_list=['theta','omega','displacement','velocity','duration'],merge_list=['theta','omega','displacement','velocity','duration'])
 
     def mac_pipeline(self,file_cfg):
         # self.load_data_folder(file_cfg)
@@ -583,8 +586,8 @@ def main():
 
     
     visualizer = Visualizer(vis_cofig_dict)
-    visualizer.mini_pipeline(file_path)
-    # visualizer.mini_pipeline(file_folder)
+    # visualizer.mini_pipeline(file_path)
+    visualizer.mini_pipeline(file_folder)
     # visualizer.mac_pipeline(file_folder)
     # visualizer.mac_pipeline(file_path)
     

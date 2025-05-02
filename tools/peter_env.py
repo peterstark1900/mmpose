@@ -17,7 +17,7 @@ class Fish2DEnv():
         self.lambda_3 = reward_cfg["lambda_3"]
         # self.reach_threshold = reward_cfg["reach_threshold"]
         self.elapsed_time = None
-        self.max_episode_duration = 5
+        self.max_episode_duration = 10
         self.episode_start_time = None
 
         self.theta_avg_total = 0
