@@ -107,6 +107,7 @@ class train():
                         state = next_state
                         episode_return += reward
                     return_list.append(episode_return)
+                    agent.update(transition_dict)
                     # detector.set_save_state(False)
                     detector.set_train_flag(False)
                     # detector.export_current_video()
