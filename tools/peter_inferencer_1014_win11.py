@@ -293,7 +293,7 @@ class FishDetector():
         for result in result_generator:
             predictions = result['predictions'][0]
             self.key_points.append(predictions.pred_instances.keypoints)
-            self.time_stamp = datetime.datetime.now()
+        self.time_stamp = datetime.datetime.now()
 
 
     def draw_in_frame(self):
@@ -351,7 +351,7 @@ class FishDetector():
             "frame_stamps": self.frame_stamps,
             "time_stamps": self.time_stamps,
         }
-        with open('frame_stamps_40151510-1.json', 'w') as f:
+        with open('frame_stamps_40151510-3.json', 'w') as f:
             json.dump(data, f, indent=4)
 
         
@@ -458,13 +458,18 @@ def peter_inferencer():
     # input_vidoe_path = r"E:\Fish-0223\MAM30B15W20R16E.mp4"
     # input_vidoe_path = r"E:\fish-0414\0414-demo-4.mp4"
 
-    input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\zjr-毕设存档\论文\peter-video\40151510-1.mp4"
-    # input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\zjr-毕设存档\论文\peter-video\50300540-1.mp4"
-    # input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\zjr-毕设存档\论文\peter-video\mix16-1.mp4"
+    input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\zjr-毕设存档\论文\peter-video\40151510-3.mp4"
+    # input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\zjr-毕设存档\论文\peter-video\50300540-2.mp4"
+    # input_vidoe_path = r"C:\Users\peter\OneDrive\毕设\zjr-毕设存档\论文\peter-video\mix16-2.mp4"
+    # input_vidoe_path = r"C:\Users\peter\Nutstore\1\毕设数据缓存\video\0502-MAM40B15W15R11E.mp4"
+    # input_vidoe_path = r"C:\Users\peter\Nutstore\1\毕设数据缓存\video\0502-MAM50B30W05R40E.mp4"
 
-    output_path = 'output_40151510-1.mp4'
-    # output_path = 'output_50300540-1.mp4'
-    # output_path = 'output_mix16-1.mp4'
+
+    output_path = 'output_40151510-3.mp4'
+    # output_path = 'output_50300540-2.mp4'
+    # output_path = 'output_mix16-2.mp4'
+    # output_path = 'output_0502-MAM40B15W15R11E.mp4'
+    # output_path = 'output_0502-MAM50B30W05R40E.mp4'
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
 
