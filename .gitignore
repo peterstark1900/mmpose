@@ -140,3 +140,4 @@ reward_*.png
 reward_*.txt
 trajectory_*.png
 return_list_*.txt
+frame_stamps*.json
