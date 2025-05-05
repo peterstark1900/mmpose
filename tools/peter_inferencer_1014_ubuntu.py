@@ -2,6 +2,7 @@ from mmpose.apis import MMPoseInferencer
 import numpy as np
 import cv2
 import json
+import datetime
 '''
 predictions:
 <PoseDataSample(
@@ -95,12 +96,15 @@ class FishDetector():
         self.key_points = []
         self.frame_stamps= []
         self.keypoint_stamp = {}
+        self.time_stamp = None
+        self.time_stamps = []
 
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
         for result in result_generator:
             predictions = result['predictions'][0]
             self.key_points.append(predictions.pred_instances.keypoints)
+        self.time_stamp = datetime.datetime.now()
 
 
     def draw_in_frame(self):
@@ -132,17 +136,17 @@ class FishDetector():
 
 
                 # 绘制头部关键点
-                cv2.circle(self.frame, head, 5, (0, 255, 0), -1)
+                cv2.circle(self.frame, head, 5, (0, 0, 255), -1)
                 # 绘制身体关键点
-                cv2.circle(self.frame, body, 5, (0, 255, 0), -1)
+                cv2.circle(self.frame, body, 5, (0, 51, 102), -1)
                 # 绘制关节关键点
                 cv2.circle(self.frame, joint, 5, (0, 255, 0), -1)
                 # 绘制尾部关键点
-                cv2.circle(self.frame, tail, 5, (0, 0, 255), -1)
+                cv2.circle(self.frame, tail, 5, (204, 0, 102), -1)
                 # 用线段连接关键点
-                cv2.line(self.frame, head, body, (255, 0, 0), 2)
-                cv2.line(self.frame, body, joint, (255, 0, 0), 2)
-                cv2.line(self.frame, joint, tail, (255, 0, 0), 2)
+                cv2.line(self.frame, head, body, (0, 0, 0), 2)
+                cv2.line(self.frame, body, joint, (0, 0, 0), 2)
+                cv2.line(self.frame, joint, tail, (0, 0, 0), 2)
 
     def reset_key_points(self):
         self.key_points = []
@@ -151,14 +155,18 @@ class FishDetector():
     def update_frame_stamps(self):
         
         self.frame_stamps.append(self.keypoint_stamp)
+        self.time_stamps.append(str(self.time_stamp)) 
+
 
     def export_frame_stamps(self):
-        info = {'total_frames': len(self.frame_stamps)}
+        info = {'total_frames': len(self.frame_stamps),
+                'total_time_stamps': len(self.time_stamps)}
         data = {
+            "info": info,
             "frame_stamps": self.frame_stamps,
-            "info": info
+            "time_stamps":self.time_stamps
         }
-        with open('fish-1222-demo19.json', 'w') as f:
+        with open('50300540-1.json', 'w') as f:
             json.dump(data, f, indent=4)
 
         
@@ -258,8 +266,15 @@ def peter_inferencer():
     my_draw_flag = True
     my_save_flag = False
     # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo19.mp4'
-    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0414/0414-demo-new-1.mp4'
-    output_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/test-output/opencv-mode-1222-demo19.mp4'
+    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0414/0414-demo-new-1.mp4'
+    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/40151510-1.mp4'
+    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/50300540-1.mp4'
+    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-1.mp4'
+
+    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-1.mp4'
+    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-1.mp4'
+    output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-1.mp4'
+    
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
 
