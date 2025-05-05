@@ -35,11 +35,20 @@ class Visualizer():
         self.data = None
         self.file_list = []
         self.folder_path = None
+
+    
+        self.angle_in_degree = []
+        self.duration_list = []
+        self.raw_avg_theta_list = []
+
+        self.displacement_list = []
     
     def load_data_file(self,file_path):
         with open(file_path, 'r') as f:
             self.data = json.load(f)
-        self.window_name = file_path.split('\\')[-1].split('.')[0]
+        # self.window_name = file_path.split('\\')[-1].split('.')[0]
+        self.window_name = file_path.split('/')[-1].split('.')[0]
+        print(self.window_name)
 
     def load_data_folder(self, folder_path):
         self.folder_path = folder_path
@@ -90,57 +99,238 @@ class Visualizer():
             self.fps = round(1 / average_interval, 2)
             print('fps is update to: '+str(round(1 / average_interval, 2)))  # 保留两位小数
 
-    def draw_raw_theta(self):
+    def calculate_raw_theta(self):
         if self.data is None:
             print("Please load the data first!")
             return
         else:
             vector_lists = []
-            angle_in_degree = []
+            self.angle_in_degree = []
             for frame_stamp in self.data['frame_stamps']:
                 head_pos = frame_stamp['head']
                 body_pos = frame_stamp['body']
-                vector = [body_pos[0] - head_pos[0], body_pos[1] - head_pos[1]]
+                vector = [ head_pos[0] - body_pos[0] , head_pos[1] - body_pos[1]]
                 vector_lists.append(vector)
             print(len(vector_lists))
+            angle_last = 0
+            cumulative_angle = 0
             for vector in vector_lists:
                 # calculate the angle between the vector and the x-axis
                 angle = np.arctan2(vector[1], vector[0])
                 # transform the angle to degree
                 angle = np.degrees(angle)
-                angle_in_degree.append(angle)
-            print(len(angle_in_degree))
-            # plot the angle
-            plt.style.use('bmh')
-            plt.figure(figsize=(16, 10), dpi=600)
-            plt.plot(angle_in_degree)
-            plt.title("Angle")
-            plt.xlabel("frame")
-            plt.ylabel("angle")
-            plt.grid(True)
-            plt.savefig(self.output_folder+'/'+'raw_angle.png')
-
-    def plot_raw_duration(self):
+                # 计算当前角度与上一角度的差值
+                delta_angle = angle - angle_last
+                # 处理 180 与 -180 突变问题
+                if delta_angle > 180:
+                    delta_angle -= 360
+                elif delta_angle < -180:
+                    delta_angle += 360
+                # 累加角度变化量
+                cumulative_angle += delta_angle
+                # 更新上一角度
+                angle_last = angle
+                self.angle_in_degree.append(cumulative_angle)
+            print(len(self.angle_in_degree))
+    
+    def calculate_raw_duration(self):
         if self.data is None:
             print("Please load the data first!")
             return
         else:
-            duration_list = []
+            self.duration_list = []
             # 将字符串时间戳转换为datetime对象
             timestamps = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f") for ts in self.data['time_stamps']]
             for i in range(len(timestamps) - 1):
                 # 计算相邻时间戳之间的时间差
                 duration = (timestamps[i + 1] - timestamps[i]).total_seconds()
-                duration_list.append(duration)
-            # 绘制时间差的折线图
+                self.duration_list.append(duration)
+
+
+    def calculate_raw_displacement(self,seconds=1):
+        if self.data is None:
+            print("Please load the data first!")
+            return
+        else:
+            self.displacement_list = []
+
+            self.yaw_in_degree = []
+            init_vector = [self.data['frame_stamps'][0]['head'][0]-self.data['frame_stamps'][0]['body'][0],self.data['frame_stamps'][0]['head'][1]-self.data['frame_stamps'][0]['body'][1]]
+            head_positions = [frame['head'] for frame in self.data['frame_stamps']]
+            head_vector_lists = []
+            for i in range(1, len(head_positions)):
+                prev_head = head_positions[i-1]
+                curr_head = head_positions[i]
+                vector = [curr_head[0] - prev_head[0], curr_head[1] - prev_head[1]]
+                head_vector_lists.append(vector)
+            init_angle = np.arctan2(init_vector[1], init_vector[0])
+            for vector in head_vector_lists:
+                current_angle = np.arctan2(vector[1], vector[0])
+                angle_diff = np.degrees(current_angle - init_angle)
+                # 规范化到[-180, 180]范围
+                angle_diff = (angle_diff + 180) % 360 - 180
+                self.yaw_in_degree.append(angle_diff)
+            head_vector_norm = [np.linalg.norm(vector) for vector in head_vector_lists]
+
+            # 将字符串时间戳转换为 datetime 对象
+            timestamps = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f") for ts in self.data['time_stamps']]
+            start_index = 0
+            current_index = 0
+
+            while current_index < len(timestamps) - 1:
+                # 计算当前时间间隔
+                duration = (timestamps[current_index + 1] - timestamps[start_index]).total_seconds()
+                if duration >= seconds:
+                    # 获取该区间内的所有角度值
+                    interval_angles = self.yaw_in_degree[start_index:current_index + 2]
+                    # 计算区间内角度的平均值
+                    avg_angle = np.mean(interval_angles)    
+                    # 计算区间内距离的平均值
+                    interval_distances = head_vector_norm[start_index:current_index + 2]
+                    avg_distance = np.mean(interval_distances)
+                    # 计算区间内的位移
+                    displacement = avg_distance * np.cos(np.radians(avg_angle))
+                    self.displacement_list.append(displacement)  
+                    # 更新起始索引
+                    start_index = current_index + 1
+                current_index += 1
+                # 绘制位移
+
+
+    def calculate_avg_theta(self, seconds=1):
+        '''
+        calculate the average angle in a second, not omgea
+        '''
+        if self.data is None:
+            print("Please load the data first!")
+            return
+        if not self.angle_in_degree:
+            print("Please calculate the angle first!")
+            return
+        else:
+            self.raw_avg_theta_list = []
+            # 将字符串时间戳转换为datetime对象
+            timestamps = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f") for ts in self.data['time_stamps']]
+            start_index = 0
+            current_index = 0
+            total_duration = 0
+            while current_index < len(timestamps) - 1:
+                # 计算当前时间间隔
+                duration = (timestamps[current_index + 1] - timestamps[start_index]).total_seconds()
+                if duration >= seconds:
+                    # 获取该区间内的所有角度值
+                    interval_angles = self.angle_in_degree[start_index:current_index + 2]
+                    # 计算区间内角度的平均值
+                    avg_theta = np.mean(interval_angles)
+                    self.raw_avg_theta_list.append(avg_theta)
+                    # 更新起始索引
+                    start_index = current_index + 1
+                current_index += 1
+
+    def calculate_avg_omega(self, seconds=1):
+            self.avg_omega_list = np.diff(self.raw_avg_theta_list)
+            self.mean_omega = np.mean(self.avg_omega_list)
+
+    def plot_raw_theta(self):
+            # plot the angle
             plt.style.use('bmh')
             plt.figure(figsize=(16, 10), dpi=600)
-            plt.plot(duration_list)
+            plt.plot(self.angle_in_degree)
+            plt.title("Angle")
+            plt.xlabel("frame")
+            plt.ylabel("angle")
+            plt.grid(True)
+            plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_angle.png')       
+    def plot_avg_omega(self):
+        # 绘制平均角速度
+        plt.style.use('bmh')
+        plt.figure(figsize=(16, 10), dpi=600)
+        # plt.plot(self.raw_avg_theta_list)
+
+        # 原始代码绘制平均角速度
+        # plt.plot(self.raw_avg_theta_list, label='Theta')
+
+        # 绘制斜率曲线（时间轴对齐原始数据）
+        plt.plot(range(len(self.avg_omega_list)), self.avg_omega_list, 
+                linestyle='--', 
+                label='Slope (omega)')
+        # 绘制斜率的平均值
+        avg_slope = np.mean(self.avg_omega_list)
+        plt.axhline(y=avg_slope, color='r', linestyle='-', label='Average omega')
+        
+        plt.title("Turning Performance")
+        plt.xlabel("Period")
+        plt.ylabel("Value")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'avg_omega.png')
+
+    def plot_raw_and_avg_theta(self,color = None):
+        # 绘制原始角度和平均角度
+        plt.style.use('bmh')
+        # 方法一：使用不同x轴坐标
+        plt.figure(figsize=(16, 10), dpi=600)
+        
+        
+        # 计算平均值的x轴坐标（取每个时间窗口的中点）
+        avg_x = [i * len(self.angle_in_degree)/len(self.raw_avg_theta_list) for i in range(len(self.raw_avg_theta_list))]
+        print(len(avg_x))
+        if color is not None:
+            plt.plot(avg_x, self.raw_avg_theta_list,
+                    label='Average Theta',
+                    linestyle='--',
+                    color=color)
+            plt.plot(self.angle_in_degree, label='Raw Angle',color=color)
+        else:
+            plt.plot(avg_x, self.raw_avg_theta_list,
+                    label='Average Theta',
+                    linestyle='--')
+        
+
+        
+        # 方法二：对齐显示（需要插值处理）
+        # from scipy import interpolate
+        # f = interpolate.interp1d(np.linspace(0, 1, len(self.raw_avg_theta_list)),
+        #                         self.raw_avg_theta_list, 
+        #                         kind='nearest')
+        # aligned_avg = f(np.linspace(0, 1, len(self.angle_in_degree)))
+        # plt.plot(aligned_avg, label='Aligned Average')
+
+        plt.title("Angle Trajectory Analysis")
+        plt.xlabel("Frame")
+        plt.ylabel("Angle (Degree)")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_and_avg_angle.png')
+        plt.close()
+
+    def plot_raw_duration(self):
+            plt.style.use('bmh')
+            plt.figure(figsize=(16, 10), dpi=600)
+            plt.plot(self.duration_list)
             plt.title("Duration")
             plt.xlabel("frame")
             plt.ylabel("duration")
             plt.grid(True)
-            plt.savefig(self.output_folder+'/'+'raw_duration.png')
+            plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_duration.png')
+    def plot_raw_displacement(self):
+            plt.style.use('bmh')
+            plt.figure(figsize=(16, 10), dpi=600)
+            # plt.plot(self.displacement_list, label='Displacement')
+            # 绘制斜率
+            slope_list = np.diff(self.displacement_list)
+            plt.plot(range(len(slope_list)), slope_list,
+                    linestyle='--',
+                    label='Slope (Acceleration)')
+            # 绘制斜率的平均值
+            avg_slope = np.mean(slope_list)
+            plt.axhline(y=avg_slope, color='r', linestyle='-', label='Average Slope')
+            # 绘制原始数据
+            plt.title("Raw Displacement")
+            plt.xlabel("Period (1 second)")
+            plt.ylabel("Displacement")
+            plt.grid(True)
+            plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_displacement.png')
 
     def calculate_state(self):
         if self.data is None:
@@ -220,11 +410,6 @@ class Visualizer():
                 old_omega_avg = old_theta_avg / duration
                 old_omega_list.append(old_omega_avg)
 
-
-
-
-
-                
             
             plt.style.use('bmh')
             plt.figure(figsize=(16, 10), dpi=600)
@@ -550,14 +735,84 @@ class Visualizer():
         # # self.draw_static_analysis()
         # self.draw_trajectory(selected_kp=self.keypoints[0])
 
+    def ddl_pipeline(self,file_cfg):
+        self.load_data_file(file_cfg)
+        self.calculate_raw_theta()
+        self.calculate_avg_theta()
+        self.plot_raw_and_avg_theta(color= 'steelblue')
+
+
+    def compare_omega(self):
+        plt.rcParams.update({
+            "text.usetex": True,
+            "font.family": "serif",
+            "axes.formatter.use_mathtext": True
+        })
+        json_files = [
+        "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json",
+        "/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.json",
+        "/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.json"]
+        colors = ['steelblue', 'limegreen', 'darkorange']
+        labels = ['E2E', 'LAHF', 'HALF']
+        plt.style.use('bmh')
+        plt.figure(figsize=(16, 10), dpi=600)
+        for idx, file_path in enumerate(json_files):
+            # 为每个文件创建独立实例
+            file_vis = Visualizer(vis_cofig_dict={
+                'output_folder': self.output_folder,
+                'fps': 30,
+                'add_fps': False,
+                'keypoints': ['head', 'body', 'joint', 'tail'],
+                'point_colors': [(0, 0, 255), (0, 51, 102), (0, 255, 0), (204, 0, 102)],
+                'line_thickness': 2,
+                'line_colors': (0, 0, 0),
+                'draw_rect': True,
+                'rect_color': (255, 0, 0),
+                'rect_thickness': 2,
+                'draw_target': False,
+                'target_color': (0, 0, 255),
+                'background_color': (255, 255, 255)
+            })
+            file_vis.load_data_file(file_path)
+            file_vis.calculate_raw_theta()
+            file_vis.calculate_avg_theta()
+            file_vis.plot_raw_and_avg_theta(color=colors[idx])
+
+            file_vis.calculate_avg_omega()
+            
+            
+            plt.plot(file_vis.avg_omega_list,
+                    marker='o',          # 添加圆形标记
+                    markersize=4,        # 设置标记大小
+                    markeredgecolor='black',
+                    color=colors[idx],
+                    label=labels[idx])
+            plt.axhline(y=file_vis.mean_omega, color=colors[idx], linestyle='--',alpha=0.9 ,label=f'{labels[idx]} Avg: {file_vis.mean_omega:.2f}°/s')
+
+
+            
+
+        plt.title("Average Angular Velocity Comparison")
+        plt.xlabel("Period")
+        plt.ylabel("Value (degrees/second)")
+        plt.legend()
+        plt.grid(True)
+        plt.savefig(f'{self.output_folder}/combined_omega.png')
+        plt.close()
+
         
        
     # def json_to_mp4(self):
 def main():
 
     vis_cofig_dict = {
-        'output_folder': r"E:\output\debug", 
+        # 'output_folder': r"E:\output\debug", 
         # 'output_folder': "/Users/peter/code/debug", 
+        'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-2", 
+        # 'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/40151510-3", 
+        # 'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/50300540-3", 
+        # 'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502", 
+
         # 'output_folder': None, 
         'fps': 30,  # 每秒帧数    
         'add_fps': False, # 是否添加fps信息
@@ -575,21 +830,28 @@ def main():
 
     # file_path = r"E:\output\json\2025-04-29-20-36-07_1.json"
     # file_path = r"E:\output\debug\2025-05-01-16-36-14_1.json"
-    file_path = r"E:\output\debug\2025-05-01-16-37-19_4.json"
+    # file_path = r"E:\output\debug\2025-05-01-16-37-19_4.json"
     # file_path = "/Users/peter/code/debug/2025-04-30-21-56-48_0.json"
     # file_path = "/Users/peter/code/debug/2025-04-30-21-57-45_2.json"
     # file_path ="/Users/peter/code/debug/2025-04-30-21-59-27_7.json"
     # file_path = "/Users/peter/code/debug/2025-04-30-22-00-07_9.json"
     # file_folder = "/Users/peter/code/debug"
-    file_folder =r"E:\output\debug"
+    # file_folder =r"E:\output\debug"
+   
+
+    file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json"
+    # file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.json"
+    # file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.json"
 
 
     
     visualizer = Visualizer(vis_cofig_dict)
     # visualizer.mini_pipeline(file_path)
-    visualizer.mini_pipeline(file_folder)
+    # visualizer.mini_pipeline(file_folder)
     # visualizer.mac_pipeline(file_folder)
     # visualizer.mac_pipeline(file_path)
+    visualizer.ddl_pipeline(file_path)
+    # visualizer.compare_omega()
     
 
 if __name__ == '__main__':

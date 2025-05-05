@@ -98,6 +98,8 @@ class FishDetector():
         self.keypoint_stamp = {}
         self.time_stamp = None
         self.time_stamps = []
+        self.output_json_file = output_path.split('/')[-1].split('.')[0]
+        self.output_json_path = output_path+self.output_json_file+'.json'
 
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
@@ -166,7 +168,7 @@ class FishDetector():
             "frame_stamps": self.frame_stamps,
             "time_stamps":self.time_stamps
         }
-        with open('50300540-1.json', 'w') as f:
+        with open(self.output_json_path, 'w') as f:
             json.dump(data, f, indent=4)
 
         
@@ -264,16 +266,16 @@ def peter_inferencer():
     my_kpt_thr = 0.2
     my_real_num = 1
     my_draw_flag = True
-    my_save_flag = False
+    my_save_flag = True
     # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo19.mp4'
     # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0414/0414-demo-new-1.mp4'
-    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/40151510-1.mp4'
-    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/50300540-1.mp4'
-    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-1.mp4'
+    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/40151510-3.mp4'
+    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/50300540-3.mp4'
+    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-2.mp4'
 
-    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-1.mp4'
-    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-1.mp4'
-    output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-1.mp4'
+    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.mp4'
+    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.mp4'
+    output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.mp4'
     
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
