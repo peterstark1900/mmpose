@@ -263,7 +263,9 @@ class Visualizer():
         plt.ylabel("Value")
         plt.legend()
         plt.grid(True)
-        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'avg_omega.png')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'avg_omega.png',format='png',bbox_inches='tight')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'avg_omega.svg',format='svg',bbox_inches='tight')
+        plt.close()
 
     def plot_raw_and_avg_theta(self,color = None):
         # 绘制原始角度和平均角度
@@ -301,18 +303,46 @@ class Visualizer():
         plt.ylabel("Angle (Degree)")
         plt.legend()
         plt.grid(True)
-        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_and_avg_angle.png')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_and_avg_angle.png',format='png',bbox_inches='tight')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_and_avg_angle.svg',format='svg',bbox_inches='tight')
         plt.close()
 
     def plot_raw_duration(self):
-            plt.style.use('bmh')
-            plt.figure(figsize=(16, 10), dpi=600)
-            plt.plot(self.duration_list)
-            plt.title("Duration")
-            plt.xlabel("frame")
-            plt.ylabel("duration")
-            plt.grid(True)
-            plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_duration.png')
+        plt.style.use('bmh')
+        plt.figure(figsize=(16, 10), dpi=600)
+        
+        # 创建主Y轴
+        ax1 = plt.gca()
+        scatter = ax1.scatter(range(len(self.duration_list)),  # x轴使用索引
+                            self.duration_list,
+                            color='steelblue',
+                            alpha=0.7,
+                            s=20,  # 设置散点大小
+                            label='Duration per Frame')
+        ax1.set_ylabel('Frame Duration (s)', color='steelblue')
+        ax1.tick_params(axis='y', labelcolor='steelblue')
+        
+        # 创建次Y轴
+        ax2 = ax1.twinx()
+        cumulative_duration = np.cumsum(self.duration_list)
+        line2 = ax2.plot(cumulative_duration,
+                       linestyle='-',
+                       color='darkorange',
+                       label='Cumulative Time')
+        ax2.set_ylabel('Total Time (s)', color='darkorange')
+        ax2.tick_params(axis='y', labelcolor='darkorange')
+        # 合并图例
+        lines = [scatter] + line2
+        labels = [l.get_label() for l in lines]
+        ax1.legend(lines, labels, loc='upper left')
+
+        plt.title("Duration Analysis")
+        # plt.xlabel("Frame")
+        ax1.set_xlabel("Frame")
+        plt.grid(True)
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_duration.png',format='png', bbox_inches='tight')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'raw_duration.svg',format='svg', bbox_inches='tight')
+        plt.close()
     def plot_raw_displacement(self):
             plt.style.use('bmh')
             plt.figure(figsize=(16, 10), dpi=600)
@@ -522,52 +552,136 @@ class Visualizer():
                 # plt.savefig(self.output_folder+'/'+'total_state.png')
                 plt.savefig(self.output_folder+'\\'+'total_state.png')
                 # plt.close()
-    def draw_trajectory(self,selected_kp=None):
+    def draw_trajectory(self,selected_kp=None,color=None):
+        plt.style.use('bmh')
+        plt.figure(figsize=(16, 10), dpi=1200)
         if self.data is None:
             print("请先加载数据!")
             return
         
         plt.figure(figsize=(12, 8), dpi=150)
         plt.gca().invert_yaxis()  # 反转Y轴匹配图像坐标系
+        # 绘制矩形框
+        x1, y1, x2, y2 = self.data['info']['current_rect']
+        my_rect_color = [c/255 for c in self.rect_color[::-1]]
+        plt.plot([x1, x2, x2, x1, x1], [y1, y1, y2, y2, y1],
+                color=my_rect_color,
+                linewidth=2,
+                linestyle='-',
+                alpha=0.6,
+                label='rectangle')
+        origin_x = min(x1, x2)
+        origin_y = max(y1, y2)  # 假设y轴向下，左下角是y的最大值
         
          # 修改轨迹提取逻辑
         trajectories = {}
         if selected_kp:  # 单个关键点模式
             trajectories[selected_kp] = [frame[selected_kp] for frame in self.data['frame_stamps']]
+            # trajectories[selected_kp] = [
+            #     (x - origin_x, origin_y - y)  # 坐标系转换公式
+            #     for frame in self.data['frame_stamps'] 
+            #     for x, y in [frame[selected_kp]]
+            # ]
+
+            counter = 0           
+            for frame in [self.data['frame_stamps'][0], self.data['frame_stamps'][-1]]:  # 首帧和末帧
+                temp_point_list = []
+                for i, kp in enumerate(self.keypoints):
+                    raw_x, raw_y = frame[kp]
+                    # 应用坐标系转换
+                    # trans_x = raw_x - origin_x
+                    # trans_y = origin_y - raw_y
+                    trans_x = raw_x 
+                    trans_y = raw_y
+                    temp_point_list.append((trans_x, trans_y))
+                    # 使用关键点对应颜色
+                    if color is not None:
+                        kp_color = color
+                    else:
+                        kp_color = [c/255 for c in self.point_colors[i][::-1]]
+                    
+                    # 绘制关键点位置
+                    if counter == 0:
+                        plt.scatter(trans_x, trans_y,
+                                color=kp_color,
+                                marker='D' ,  
+                                s=30,
+                                edgecolor='black',
+                                zorder=3,
+                                alpha=0.6,
+                                label=f'start_state' if frame is self.data['frame_stamps'][0] and i == 0 else "")
+                    else:
+                        plt.scatter(trans_x, trans_y,
+                                color=kp_color,
+                                marker= 'X',  # 菱形标记首帧，叉号标记末帧
+                                s=30,
+                                edgecolor='black',
+                                zorder=3,
+                                alpha=0.6,
+                                label=f'end_state' if frame is self.data['frame_stamps'][-1] and i == 0 else "")
+                x,y = zip(*temp_point_list) 
+                if counter == 0:
+                    plt.plot(x, y,
+                            color=kp_color,
+                            linewidth=2,
+                            linestyle='--',
+                            alpha=0.6,
+                            )
+                else:
+                    plt.plot(x, y,
+                            color=kp_color,
+                            linewidth=2,
+                            linestyle='--',
+                            alpha=0.6,
+                            )
+                counter += 1
+
+
         else:  # 原有全关键点模式
             trajectories = {k: [] for k in self.keypoints}
             for frame in self.data['frame_stamps']:
                 for kp in self.keypoints:
                     trajectories[kp].append(frame[kp])
+            # trajectories = {
+            #     kp: [
+            #         (x - origin_x, origin_y - y)  # 坐标系转换公式
+            #         for frame in self.data['frame_stamps'] 
+            #         for x, y in [frame[kp]]
+            #     ] 
+            #     for kp in self.keypoints
+            # }
         
-         # 修改绘制逻辑
         if selected_kp:  # 绘制单个关键点
             coords = trajectories[selected_kp]
             x, y = zip(*coords)
-            color = [c/255 for c in self.point_colors[0][::-1]]  # 使用第一个关键点的颜色
+            if color is not None:
+                line_color = color
+            else:
+                line_color = [c/255 for c in self.point_colors[0][::-1]]  # 使用第一个关键点的颜色
+           
             plt.plot(x, y, 
-                color=color,
+                color=line_color,
                 linewidth=2,
                 linestyle='-',
-                alpha=0.6,
+                alpha=1,
                 label=f'{selected_kp}_trajectory')
             # plt.scatter(x[::10], y[::10],
             #         color=color,
             #         s=30,
             #         edgecolors='black')
-             # 标记起点和终点
-            plt.scatter(x[0], y[0], 
-                    color=color, 
-                    marker='^', 
-                    s=100,
-                    edgecolor='black',
-                    label='start')
-            plt.scatter(x[-1], y[-1],
-                    color=color,
-                    marker='s',
-                    s=100,
-                    edgecolor='black',
-                    label='end')
+            #  # 标记起点和终点
+            # plt.scatter(x[0], y[0], 
+            #         color=color, 
+            #         marker='^', 
+            #         s=100,
+            #         edgecolor='black',
+            #         label='start')
+            # plt.scatter(x[-1], y[-1],
+            #         color=color,
+            #         marker='s',
+            #         s=100,
+            #         edgecolor='black',
+            #         label='end')
         else:  # 原有绘制逻辑
             for i, (kp, coords) in enumerate(trajectories.items()):
                 x, y = zip(*coords)
@@ -596,25 +710,125 @@ class Visualizer():
                         zorder=3)
 
         
-        # 绘制目标点
-        if self.draw_target:
-            target = (self.data['info']['target_x'], 
-                    self.data['info']['target_y'])
-            target_color = [c/255 for c in self.target_color[::-1]]  # BGR转RGB
-            plt.scatter(*target, s=200, marker='*',
-                    color=target_color,
-                    label='target loaction')
+        # # 绘制目标点
+        # if self.draw_target:
+        #     target = (self.data['info']['target_x'], 
+        #             self.data['info']['target_y'])
+        #     target_color = [c/255 for c in self.target_color[::-1]]  # BGR转RGB
+        #     plt.scatter(*target, s=200, marker='*',
+        #             color=target_color,
+        #             label='target loaction')
+
         
+        
+        plt.title("Turning Trajectory")
+        plt.xlabel("X(px)")
+        plt.ylabel("Y(px)")
+        plt.grid(True)
+        # plt.legend(loc='upper right')
+        plt.legend(loc='upper right', bbox_to_anchor=(0.95, 0.95))  # 0.95表示右侧留5%空白
+        
+        # filename = f'trajectory_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png'
+        # plt.savefig(filename, bbox_inches='tight')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'trajectory_.png', format='png', bbox_inches='tight')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'trajectory_.svg', format='svg', bbox_inches='tight')
+        plt.close()
+        print(f"Trajectory has saved! ")
+    
+    def draw_multiple_trajectories(self,selected_kp,multi_traj_config):
+        plt.style.use('bmh')
+        plt.figure(figsize=(12, 8), dpi=150)
+        plt.gca().invert_yaxis()  # 反转Y轴匹配图像坐标系
+        data_list = []
+        for file in multi_traj_config['json_files']:
+            with open(file, 'r') as f:
+                data = json.load(f)
+            data_list.append(data)
+        # 绘制矩形框
+        x1, y1, x2, y2 = data_list[0]['info']['current_rect']
+        my_rect_color = [c/255 for c in self.rect_color[::-1]]
+        plt.plot([x1, x2, x2, x1, x1], [y1, y1, y2, y2, y1],
+                color=my_rect_color,
+                linewidth=2,
+                linestyle='-',
+                alpha=0.6,
+                label='rectangle')
+        color_list = multi_traj_config['colors']
+        label_list = multi_traj_config['labels']
+        data_conter=0
+        for data in data_list:
+            trajectories = {}
+            trajectories[selected_kp] = [frame[selected_kp] for frame in data['frame_stamps']]
+            counter = 0           
+            for frame in [data['frame_stamps'][0], data['frame_stamps'][-1]]:  # 首帧和末帧
+                temp_point_list = []
+                for i, kp in enumerate(self.keypoints):
+                    raw_x, raw_y = frame[kp]
+                    # 应用坐标系转换
+                    # trans_x = raw_x - origin_x
+                    # trans_y = origin_y - raw_y
+                    trans_x = raw_x 
+                    trans_y = raw_y
+                    temp_point_list.append((trans_x, trans_y))
+                    # 使用关键点对应颜色
+                    kp_color = color_list[data_conter]
+                    
+                    # 绘制关键点位置
+                    if counter == 0:
+                        plt.scatter(trans_x, trans_y,
+                                color=kp_color,
+                                marker='D' ,  
+                                s=5,
+                                edgecolor='black',
+                                zorder=3,
+                                alpha=0.6,
+                                label=f'{label_list[data_conter]}_start' if frame is data['frame_stamps'][0] and i == 0 else "")
+                    else:
+                        plt.scatter(trans_x, trans_y,
+                                color=kp_color,
+                                marker= 'X',  # 菱形标记首帧，叉号标记末帧
+                                s=5,
+                                edgecolor='black',
+                                zorder=3,
+                                alpha=0.6,
+                                label=f'{label_list[data_conter]}_end' if frame is data['frame_stamps'][0] and i == 0 else "")
+                x,y = zip(*temp_point_list) 
+                if counter == 0:
+                    plt.plot(x, y,
+                            color=kp_color,
+                            linewidth=2,
+                            linestyle='--',
+                            alpha=0.6,
+                            )
+                else:
+                    plt.plot(x, y,
+                            color=kp_color,
+                            linewidth=2,
+                            linestyle='--',
+                            alpha=0.6,
+                            )
+                counter += 1
+                line_color = color_list[data_conter]
+                coords = trajectories[selected_kp]
+                x, y = zip(*coords)
+                plt.plot(x, y, 
+                color=line_color,
+                linewidth=2,
+                linestyle='-',
+                alpha=1,
+                label=f'{label_list[data_conter]}_trajectory')
+            data_conter += 1
         plt.title("keypoints trajectory")
         plt.xlabel("X")
         plt.ylabel("Y")
         plt.grid(True)
-        plt.legend()
+        plt.legend(loc='upper right', bbox_to_anchor=(0.95, 0.95))  # 0.95表示右侧留5%空白
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'trajectory_.png', format='png', bbox_inches='tight')
+        plt.savefig(self.output_folder+'/'+self.window_name+'_'+'trajectory_.svg', format='svg', bbox_inches='tight')
+
+
+            
         
-        filename = f'trajectory_{datetime.now().strftime("%Y%m%d_%H%M%S")}.png'
-        plt.savefig(filename, bbox_inches='tight')
-        print(f"Trajectory has save to: {filename}")
-    
 
     def show_animation(self):
         if self.data is None:
@@ -739,15 +953,13 @@ class Visualizer():
         self.load_data_file(file_cfg)
         self.calculate_raw_theta()
         self.calculate_avg_theta()
-        self.plot_raw_and_avg_theta(color= 'steelblue')
+        self.plot_raw_and_avg_theta(color= 'darkorange')
+        self.calculate_raw_duration()
+        self.plot_raw_duration()
+        self.draw_trajectory(selected_kp=self.keypoints[0],color= 'darkorange')
 
 
     def compare_omega(self):
-        plt.rcParams.update({
-            "text.usetex": True,
-            "font.family": "serif",
-            "axes.formatter.use_mathtext": True
-        })
         json_files = [
         "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json",
         "/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.json",
@@ -776,7 +988,7 @@ class Visualizer():
             file_vis.load_data_file(file_path)
             file_vis.calculate_raw_theta()
             file_vis.calculate_avg_theta()
-            file_vis.plot_raw_and_avg_theta(color=colors[idx])
+            # file_vis.plot_raw_and_avg_theta(color=colors[idx])
 
             file_vis.calculate_avg_omega()
             
@@ -797,7 +1009,8 @@ class Visualizer():
         plt.ylabel("Value (degrees/second)")
         plt.legend()
         plt.grid(True)
-        plt.savefig(f'{self.output_folder}/combined_omega.png')
+        plt.savefig(f'{self.output_folder}/combined_omega.png', format='png')
+        plt.savefig(f'{self.output_folder}/combined_omega.svg', format='svg')
         plt.close()
 
         
@@ -821,12 +1034,13 @@ def main():
         'line_thickness': 2,
         'line_colors': (0, 0, 0),
         'draw_rect': True,
-        'rect_color': (255, 0, 0),
+        'rect_color': (0, 0, 255),
         'rect_thickness': 2,
         'draw_target': False,
         'target_color': (0, 0, 255),
         'background_color': (255, 255, 255)
     }
+
 
     # file_path = r"E:\output\json\2025-04-29-20-36-07_1.json"
     # file_path = r"E:\output\debug\2025-05-01-16-36-14_1.json"
@@ -839,9 +1053,9 @@ def main():
     # file_folder =r"E:\output\debug"
    
 
-    file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json"
+    # file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json"
     # file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.json"
-    # file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.json"
+    file_path = "/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.json"
 
 
     
@@ -850,7 +1064,20 @@ def main():
     # visualizer.mini_pipeline(file_folder)
     # visualizer.mac_pipeline(file_folder)
     # visualizer.mac_pipeline(file_path)
-    visualizer.ddl_pipeline(file_path)
+    # visualizer.ddl_pipeline(file_path)
+
+    multi_traj_vis_config_dict = {
+        'json_files': [
+            "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json",
+            "/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.json",
+            "/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.json"
+        ],
+        'colors': ['steelblue', 'limegreen', 'darkorange'],
+        'labels': ['E2E', 'LAHF', 'HALF'],
+        
+    }
+    visualizer.draw_multiple_trajectories(selected_kp='head',
+    multi_traj_config=multi_traj_vis_config_dict)
     # visualizer.compare_omega()
     
 
