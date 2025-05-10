@@ -4,6 +4,7 @@ import numpy as np
 from datetime import datetime
 from matplotlib import pyplot as plt
 import os
+from scipy import interpolate
 
 
 class Visualizer():
@@ -40,6 +41,7 @@ class Visualizer():
         self.angle_in_degree = []
         self.duration_list = []
         self.raw_avg_theta_list = []
+        self.avg_x_indices = []
 
         self.displacement_list = []
     
@@ -209,6 +211,7 @@ class Visualizer():
             return
         else:
             self.raw_avg_theta_list = []
+            self.avg_x_indices = []  # 存储中点坐标的列表
             # 将字符串时间戳转换为datetime对象
             timestamps = [datetime.strptime(ts, "%Y-%m-%d %H:%M:%S.%f") for ts in self.data['time_stamps']]
             start_index = 0
@@ -223,6 +226,8 @@ class Visualizer():
                     # 计算区间内角度的平均值
                     avg_theta = np.mean(interval_angles)
                     self.raw_avg_theta_list.append(avg_theta)
+                    midpoint = (start_index + current_index) // 2  # 新增中点计算
+                    self.avg_x_indices.append(midpoint)
                     # 更新起始索引
                     start_index = current_index + 1
                 current_index += 1
@@ -275,12 +280,18 @@ class Visualizer():
         
         
         # 计算平均值的x轴坐标（取每个时间窗口的中点）
-        avg_x = [i * len(self.angle_in_degree)/len(self.raw_avg_theta_list) for i in range(len(self.raw_avg_theta_list))]
-        print(len(avg_x))
+        # avg_x = [i * len(self.angle_in_degree)/len(self.raw_avg_theta_list) for i in range(len(self.raw_avg_theta_list))]
+        # print(len(avg_x))
+        avg_x = self.avg_x_indices 
+
         if color is not None:
             plt.plot(avg_x, self.raw_avg_theta_list,
                     label='Average Theta',
                     linestyle='--',
+                    marker='o',
+                    markersize=3,
+                    markeredgecolor='black',
+                    zorder =5,
                     color=color)
             plt.plot(self.angle_in_degree, label='Raw Angle',color=color)
         else:
@@ -329,10 +340,17 @@ class Visualizer():
                        linestyle='-',
                        color='darkorange',
                        label='Cumulative Time')
+        # 标注最后一个点
+        last_point = ax2.scatter(len(cumulative_duration)-1, cumulative_duration[-1],
+                               color='darkorange', marker='o', s=30,
+                               edgecolor='black', zorder=5, label='Total Time')
+        ax2.text(len(cumulative_duration)-5, cumulative_duration[-1],
+               '('+f'{len(cumulative_duration)-1}'+', '+f'{cumulative_duration[-1]:.2f}'+')', 
+               ha='right', va='bottom', color='darkorange', fontsize=10)
         ax2.set_ylabel('Total Time (s)', color='darkorange')
         ax2.tick_params(axis='y', labelcolor='darkorange')
         # 合并图例
-        lines = [scatter] + line2
+        lines = [scatter] + line2 + [last_point]
         labels = [l.get_label() for l in lines]
         ax1.legend(lines, labels, loc='upper left')
 
@@ -613,7 +631,7 @@ class Visualizer():
                     else:
                         plt.scatter(trans_x, trans_y,
                                 color=kp_color,
-                                marker= 'X',  # 菱形标记首帧，叉号标记末帧
+                                marker= 'o',  
                                 s=30,
                                 edgecolor='black',
                                 zorder=3,
@@ -1021,9 +1039,9 @@ def main():
     vis_cofig_dict = {
         # 'output_folder': r"E:\output\debug", 
         # 'output_folder': "/Users/peter/code/debug", 
-        'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-2", 
+        # 'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-2", 
         # 'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/40151510-3", 
-        # 'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/50300540-3", 
+        'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502/50300540-3", 
         # 'output_folder': "/home/peter/Desktop/Fish-Dataset/fish-0502", 
 
         # 'output_folder': None, 
@@ -1066,19 +1084,19 @@ def main():
     # visualizer.mac_pipeline(file_path)
     # visualizer.ddl_pipeline(file_path)
 
-    multi_traj_vis_config_dict = {
-        'json_files': [
-            "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json",
-            "/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.json",
-            "/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.json"
-        ],
-        'colors': ['steelblue', 'limegreen', 'darkorange'],
-        'labels': ['E2E', 'LAHF', 'HALF'],
+    # multi_traj_vis_config_dict = {
+    #     'json_files': [
+    #         "/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.json",
+    #         "/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.json",
+    #         "/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.json"
+    #     ],
+    #     'colors': ['steelblue', 'limegreen', 'darkorange'],
+    #     'labels': ['E2E', 'LAHF', 'HALF'],
         
-    }
-    visualizer.draw_multiple_trajectories(selected_kp='head',
-    multi_traj_config=multi_traj_vis_config_dict)
-    # visualizer.compare_omega()
+    # }
+    # visualizer.draw_multiple_trajectories(selected_kp='head',
+    # multi_traj_config=multi_traj_vis_config_dict)
+    visualizer.compare_omega()
     
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ import numpy as np
 import cv2
 import json
 import datetime
+import os
 '''
 predictions:
 <PoseDataSample(
@@ -68,7 +69,7 @@ class FishDetector():
         self.save_flag = my_save_flag
         if self.save_flag:
             # 初始化 VideoWriter 对象
-            self.fps = self.cap.get(cv2.CAP_PROP_FPS)
+            self.fps = 30
             self.width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
             self.height = int(self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
             self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # 编码器
@@ -96,17 +97,20 @@ class FishDetector():
         self.key_points = []
         self.frame_stamps= []
         self.keypoint_stamp = {}
+        self.base_time = datetime.datetime.now()
         self.time_stamp = None
         self.time_stamps = []
         self.output_json_file = output_path.split('/')[-1].split('.')[0]
-        self.output_json_path = output_path+self.output_json_file+'.json'
+        output_dir = os.path.dirname(output_path)
+        self.output_json_path = os.path.join(output_dir, f"{self.output_json_file}.json")
+        print(self.output_json_path)
 
     def detect_in_frame(self):
         result_generator = self.inferencer(self.frame,self.kpt_thr)
         for result in result_generator:
             predictions = result['predictions'][0]
             self.key_points.append(predictions.pred_instances.keypoints)
-        self.time_stamp = datetime.datetime.now()
+        # self.time_stamp = datetime.datetime.now()
 
 
     def draw_in_frame(self):
@@ -162,7 +166,13 @@ class FishDetector():
 
     def export_frame_stamps(self):
         info = {'total_frames': len(self.frame_stamps),
-                'total_time_stamps': len(self.time_stamps)}
+                'total_time_stamps': len(self.time_stamps),
+                "current_rect":[
+                    125,
+                    50,
+                    1795,
+                    1025
+                ]}
         data = {
             "info": info,
             "frame_stamps": self.frame_stamps,
@@ -179,6 +189,11 @@ class FishDetector():
             if not ret:
                 print("无法读取帧 (视频结束?). Exiting ...")
                 break
+            #  时间戳计算（基于视频帧位置）
+            frame_pos = self.cap.get(cv2.CAP_PROP_POS_FRAMES)
+            timestamp_sec = frame_pos / self.fps
+            delta = datetime.timedelta(seconds=timestamp_sec)
+            self.time_stamp = (self.base_time + delta).strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]  # 保留微秒三位
 
             # 调整帧的大小
             self.frame = cv2.resize(ori_frame, (1920, 1080))
@@ -269,13 +284,13 @@ def peter_inferencer():
     my_save_flag = True
     # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-1222/fish-1222-demo19.mp4'
     # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0414/0414-demo-new-1.mp4'
-    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/40151510-3.mp4'
+    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/40151510-3.mp4'
     # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/50300540-3.mp4'
-    input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-2.mp4'
+    # input_vidoe_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/mix16-2.mp4'
 
-    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.mp4'
+    output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_40151510-3.mp4'
     # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_50300540-3.mp4'
-    output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.mp4'
+    # output_path = '/home/peter/Desktop/Fish-Dataset/fish-0502/output_mix16-2.mp4'
     
     fish_detector = FishDetector(detect_type, my_pose_cfg, my_pose_weights, my_detect_cfg, my_detect_weights, my_kpt_thr, my_real_num, my_draw_flag, my_save_flag, input_vidoe_path, output_path)
     fish_detector.frame_pipeline()
